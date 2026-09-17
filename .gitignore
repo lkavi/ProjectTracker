@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcresult
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Local signing (holds your Apple Team ID) — never commit
+Config/Local.xcconfig
+
+# Tooling
+.claude/
+
+# Profiling output from local test runs
+*.profraw
+*.profdata

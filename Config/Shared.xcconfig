@@ -1,0 +1,6 @@
+// Project-level build settings shared by every target.
+//
+// Machine-specific values (your Apple Developer Team ID) belong in
+// Config/Local.xcconfig, which is git-ignored so it is never committed.
+// Copy Local.xcconfig.example to Local.xcconfig and fill it in.
+#include? "Local.xcconfig"
