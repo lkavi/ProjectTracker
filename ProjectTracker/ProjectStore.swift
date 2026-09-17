@@ -41,7 +41,13 @@ enum ProjectStore {
     }
 
     static func save(_ project: Project) {
-        guard let data = try? encoder.encode(project) else { return }
+        let data: Data
+        do {
+            data = try encoder.encode(project)
+        } catch {
+            StorageErrors.shared.report("save the project", error: error)
+            return
+        }
         CloudContainer.write(data, to: fileURL(for: project.id))
         // Refresh with the just-saved copy so a widget pinned to this project
         // updates even when it isn't the active one.
@@ -263,109 +269,6 @@ enum ProjectStore {
         if fullyMerged {
             try? FileManager.default.removeItem(at: localDir)
         }
-    }
-
-    // MARK: - One-time migration from the legacy single-pipeline format
-
-    private static let migrationKey = "fyp-migrated-to-projects-v1"
-
-    /// Converts pre-projects data (iCloud-KV checkbox progress, content.json
-    /// personalization, per-stage notes/PDFs) into a "Final Year Project"
-    /// project file. Uses deterministic UUIDs derived from stage/task indices
-    /// so every device migrating independently produces the same file and the
-    /// copies converge in iCloud instead of duplicating.
-    static func migrateLegacyIfNeeded(allowWithoutCloud: Bool = false) {
-        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
-
-        // When signed into iCloud, wait for the container (and the legacy
-        // content.json download) so personalized tasks aren't lost. A delayed
-        // retry passes allowWithoutCloud=true so users whose iCloud Drive is
-        // off still get migrated from local + KV data.
-        if !allowWithoutCloud, FileManager.default.ubiquityIdentityToken != nil {
-            guard CloudContainer.isAvailable else { return }
-            let contentURL = CloudContainer.baseURL.appendingPathComponent("content.json")
-            if CloudContainer.downloadStatus(contentURL) == .notDownloaded {
-                CloudContainer.ensureDownloaded(contentURL)
-                return   // runs again on the next .iCloudFilesChanged
-            }
-        }
-
-        let legacyProgress = ProgressStore.legacyProgress()
-        let legacyConfig = legacyPersonalization()
-        let legacyNotes = ProgressStore.legacyNotes()
-        let hasLegacyData = !legacyProgress.isEmpty || legacyConfig != nil || !legacyNotes.isEmpty
-        guard hasLegacyData else {
-            UserDefaults.standard.set(true, forKey: migrationKey)
-            return
-        }
-
-        var completed: Set<UUID> = []
-        let stages: [ProjectStage] = STAGES.enumerated().map { i, s in
-            let taskTitles = legacyTasks(for: s, config: legacyConfig)
-            let tasks = taskTitles.enumerated().map { j, title in
-                ProjectTask(id: deterministicUUID(1000 + i * 100 + j + 1), title: title)
-            }
-            for (j, task) in tasks.enumerated() where legacyProgress[i]?[j] == true {
-                completed.insert(task.id)
-            }
-            return ProjectStage(id: deterministicUUID(1000 + i * 100),
-                                title: s.title, weight: s.weight, deadline: s.real, tasks: tasks)
-        }
-
-        var topic: String?
-        if let t = legacyConfig?.topic, !t.isEmpty, t != "REPLACE_ME" { topic = t }
-
-        var project = Project(
-            id: deterministicUUID(1),
-            instructions: aiInstructions,
-            definition: ProjectDefinition(name: "Final Year Project", topic: topic, stages: stages)
-        )
-        project.progress.completedTaskIDs = completed
-
-        // If the other device already migrated and its file synced down,
-        // merge progress instead of overwriting.
-        if let synced = loadAll().first(where: { $0.id == project.id }) {
-            project.progress.completedTaskIDs.formUnion(synced.progress.completedTaskIDs)
-            project.definition = synced.definition
-        }
-        save(project)
-
-        // Move each stage's notes + PDFs from the index-keyed legacy paths
-        // to the new UUID-keyed ones (old data is left in place for safety).
-        for (i, stage) in stages.enumerated() {
-            ArtifactsStore.migrateLegacy(stageIndex: i, stageKey: stage.id.uuidString,
-                                         kvNotes: legacyNotes[i])
-        }
-
-        activeProjectID = project.id
-        UserDefaults.standard.set(true, forKey: migrationKey)
-        print("[ProjectTracker] ✅ Migrated legacy pipeline into project \(project.id)")
-    }
-
-    /// Fixed-pattern UUIDs so independent migrations on two devices agree.
-    private static func deterministicUUID(_ n: Int) -> UUID {
-        UUID(uuidString: String(format: "F19B0000-0000-4000-8000-%012d", n))!
-    }
-
-    // Minimal reader for the old content.json personalization file.
-    private struct LegacyPersonalizedStage: Codable { let id: Int; var tasks: [String] }
-    private struct LegacyConfig: Codable {
-        var topic: String
-        var stages: [LegacyPersonalizedStage]
-    }
-
-    private static func legacyPersonalization() -> LegacyConfig? {
-        let url = CloudContainer.baseURL.appendingPathComponent("content.json")
-        guard let data = CloudContainer.read(at: url) else { return nil }
-        return try? JSONDecoder().decode(LegacyConfig.self, from: data)
-    }
-
-    private static func legacyTasks(for stage: Stage, config: LegacyConfig?) -> [String] {
-        guard let config,
-              let match = config.stages.first(where: { $0.id == stage.id }),
-              match.tasks.count == stage.tasks.count
-        else { return stage.tasks }
-        return match.tasks
     }
 
     // MARK: - JSON coding

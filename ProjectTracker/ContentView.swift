@@ -46,6 +46,7 @@ struct ContentView: View {
     @State private var importError: String?
     @State private var showImporter = false
     @State private var showNotificationSettings = false
+    @State private var storageErrors = StorageErrors.shared
     #if os(iOS)
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
@@ -98,6 +99,12 @@ struct ContentView: View {
                    isPresented: .constant(importError != nil), presenting: importError) { _ in
                 Button("OK") { importError = nil }
             } message: { msg in Text(msg) }
+            .alert("Couldn't save",
+                   isPresented: Binding(get: { storageErrors.pending != nil },
+                                        set: { if !$0 { storageErrors.pending = nil } }),
+                   presenting: storageErrors.pending) { _ in
+                Button("OK") { storageErrors.pending = nil }
+            } message: { failure in Text(failure.message) }
             .sheet(isPresented: $showNotificationSettings, onDismiss: {
                 bufferDays = ProgressStore.loadBufferDays()
                 ProjectStore.refreshWidgetSnapshots()
@@ -174,27 +181,20 @@ struct ContentView: View {
                 Button { showNotificationSettings = true } label: {
                     Image(systemName: "gearshape")
                 }
+                .accessibilityLabel("Settings")
+                .accessibilityIdentifier("settings-button")
             }
         }
         #endif
         .onAppear {
             guard !hasLoaded else { return }
             hasLoaded = true
-            ProjectStore.migrateLegacyIfNeeded()
             reload()
-            // Fallback: if iCloud Drive never resolves (signed in but Drive
-            // off), migrate anyway from KV + local data after a grace period.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-                ProjectStore.migrateLegacyIfNeeded(allowWithoutCloud: true)
-                reload()
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
-            ProjectStore.migrateLegacyIfNeeded()
             reload()
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudFilesChanged)) { _ in
-            ProjectStore.migrateLegacyIfNeeded()
             reload()
         }
         .onReceive(
@@ -214,6 +214,11 @@ struct ContentView: View {
             reload()
         }
         .onChange(of: expandedStages) { _, newValue in saveExpandedState(newValue) }
+        .onChange(of: active?.definition.stages) { _, stages in
+            // Reminders belong to the active project's stages: follow renames,
+            // imports and project switches instead of keeping stale titles.
+            if let stages { NotificationStore.reschedule(for: stages) }
+        }
     }
 
     private func projectPipeline(_ project: Project) -> some View {
@@ -284,6 +289,7 @@ struct ContentView: View {
             HStack(spacing: 12) {
                 Button("New Project") { newProjectName = ""; showNewProject = true }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("new-project-button")
                 Button("Import Project JSON…") { showImporter = true }
             }
         }
@@ -329,6 +335,7 @@ struct ContentView: View {
                 Text("\(project.passedStageCount) of \(project.definition.stages.count) stages passed")
                     .font(.headline)
                     .foregroundStyle(.primary)
+                    .accessibilityIdentifier("progress-summary")
                 Spacer()
                 projectMenu(project)
             }
@@ -362,6 +369,7 @@ struct ContentView: View {
             Text("\(project.passedStageCount) / \(project.definition.stages.count) stages passed")
                 .font(.callout.monospaced())
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("progress-summary")
             ProgressView(value: Double(project.passedStageCount),
                          total: Double(max(project.definition.stages.count, 1)))
                 .tint(.green)
@@ -429,6 +437,8 @@ struct ContentView: View {
         } label: {
             Image(systemName: "ellipsis.circle")
         }
+        .accessibilityLabel("More")
+        .accessibilityIdentifier("more-menu")
     }
     #endif
 
@@ -471,6 +481,7 @@ struct ContentView: View {
                     Text("▶ NEXT UP · STAGE \(index + 1) OF \(project.definition.stages.count)")
                         .font(.appLabelBold)
                         .foregroundStyle(status.color)
+                        .accessibilityIdentifier("next-up-title")
 
                     Text(stage.title)
                         .font(.title3.bold())
@@ -540,6 +551,7 @@ struct ContentView: View {
             Button { showNotificationSettings = true } label: {
                 Label("Settings", systemImage: "gearshape")
             }
+            .accessibilityIdentifier("settings-button")
             Spacer()
             Button("Reset Progress", role: .destructive) { showResetConfirm = true }
             Button("Collapse All") { expandedStages = [] }
@@ -630,11 +642,20 @@ struct ContentView: View {
         panel.nameFieldStringValue = filename
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            try? data.write(to: url)
+            do {
+                try data.write(to: url)
+            } catch {
+                Task { @MainActor in StorageErrors.shared.report("save the export file", error: error) }
+            }
         }
         #else
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        try? data.write(to: url)
+        do {
+            try data.write(to: url)
+        } catch {
+            StorageErrors.shared.report("save the export file", error: error)
+            return
+        }
         shareItems = [url]
         showShareSheet = true
         #endif

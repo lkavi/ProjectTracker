@@ -54,6 +54,7 @@ enum CloudContainer {
     /// Posts `.iCloudContainerReady` when done so views can reload synced file lists.
     /// Safe to call multiple times — no-ops if already resolved or resolving.
     static func resolveAsync() {
+        guard !UITestSupport.isActive else { return }   // UI tests stay fully local
         guard _icloudBase == nil, !_isResolving else { return }
 
         // Fast pre-check: if not signed into iCloud, container will never resolve.
@@ -96,8 +97,10 @@ enum CloudContainer {
 
     /// Local Documents/<dataFolderName> — used when iCloud is unavailable.
     static var localFallback: URL {
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            .appendingPathComponent(dataFolderName, isDirectory: true)
+        let url = UITestSupport.isActive
+            ? UITestSupport.dataRoot
+            : FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                .appendingPathComponent(dataFolderName, isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }
@@ -132,34 +135,82 @@ enum CloudContainer {
     }
 
     /// Coordinated atomic write, creating parent directories as needed.
-    static func write(_ data: Data, to url: URL) {
-        try? FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        var error: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &error) { actualURL in
-            try? data.write(to: actualURL, options: .atomic)
+    /// Failures are reported to `StorageErrors` (shown as an alert) instead of
+    /// being swallowed. Returns false when nothing was written.
+    @discardableResult
+    static func write(_ data: Data, to url: URL) -> Bool {
+        let action = "save \(describe(url))"
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        } catch {
+            StorageErrors.shared.report(action, error: error)
+            return false
         }
+        var coordinationError: NSError?
+        var writeError: Error?
+        NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { actualURL in
+            do { try data.write(to: actualURL, options: .atomic) } catch { writeError = error }
+        }
+        if let error = (coordinationError as Error?) ?? writeError {
+            StorageErrors.shared.report(action, error: error)
+            return false
+        }
+        return true
     }
 
     /// Coordinated copy of an external file (e.g. from the document picker) into the container.
     static func copyIn(from source: URL, to dest: URL) -> Bool {
-        try? FileManager.default.createDirectory(
-            at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-        var ok = false
-        var error: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &error) { actualURL in
-            try? FileManager.default.removeItem(at: actualURL)
-            ok = (try? FileManager.default.copyItem(at: source, to: actualURL)) != nil
+        let action = "copy \(describe(dest))"
+        do {
+            try FileManager.default.createDirectory(
+                at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+        } catch {
+            StorageErrors.shared.report(action, error: error)
+            return false
         }
-        return ok
+        var coordinationError: NSError?
+        var copyError: Error?
+        NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &coordinationError) { actualURL in
+            if FileManager.default.fileExists(atPath: actualURL.path) {
+                do { try FileManager.default.removeItem(at: actualURL) } catch { copyError = error; return }
+            }
+            do { try FileManager.default.copyItem(at: source, to: actualURL) } catch { copyError = error }
+        }
+        if let error = (coordinationError as Error?) ?? copyError {
+            StorageErrors.shared.report(action, error: error)
+            return false
+        }
+        return true
     }
 
-    /// Coordinated delete.
+    /// Coordinated delete. A file that is already gone is not an error.
     static func delete(at url: URL) {
-        var error: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: .forDeleting, error: &error) { actualURL in
-            try? FileManager.default.removeItem(at: actualURL)
+        var coordinationError: NSError?
+        var deleteError: Error?
+        NSFileCoordinator().coordinate(writingItemAt: url, options: .forDeleting, error: &coordinationError) { actualURL in
+            do {
+                try FileManager.default.removeItem(at: actualURL)
+            } catch let error as NSError
+                        where error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError {
+                // Nothing to delete.
+            } catch {
+                deleteError = error
+            }
         }
+        if let error = (coordinationError as Error?) ?? deleteError {
+            StorageErrors.shared.report("delete \(describe(url))", error: error)
+        }
+    }
+
+    /// Human-readable name for what lives at a container path, for alerts.
+    private static func describe(_ url: URL) -> String {
+        let path = url.path
+        if path.contains("/projects/") { return "the project" }
+        if path.contains("/notes/") { return "the stage notes" }
+        if path.hasSuffix("/research/index.json") { return "the reference library" }
+        if path.contains("/files/") { return "the attached PDF" }
+        return "\"\(url.lastPathComponent)\""
     }
 
     /// Kicks off a download if the item exists in iCloud but isn't local yet.

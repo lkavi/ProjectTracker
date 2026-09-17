@@ -56,7 +56,10 @@ enum NotificationStore {
                 let content = UNMutableNotificationContent()
                 content.title = "Project reminder"
                 content.body = "Time to work on: \(stage.title)"
-                content.subtitle = stage.dueText()
+                // A repeating request keeps the text it was created with, so use
+                // the fixed deadline date rather than a relative "due in Nd".
+                content.subtitle = stage.deadlineDate
+                    .map { "Deadline \(deadlineFormatter.string(from: $0))" } ?? "No deadline"
                 content.sound = .default
 
                 var comps = DateComponents()
@@ -74,6 +77,19 @@ enum NotificationStore {
             }
         }
     }
+
+    /// Re-creates the pending reminders for the active project's stages from
+    /// the saved preferences. Call whenever those stages change (rename,
+    /// import, project switch) so titles and dates never go stale.
+    static func reschedule(for stages: [ProjectStage]) {
+        rescheduleAll(load(for: stages), stages: stages)
+    }
+
+    private static let deadlineFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        return f
+    }()
 
     // MARK: - Permission
 

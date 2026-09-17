@@ -101,7 +101,7 @@ Then, on the app-level pages:
 
 - ☐ Release the version (if you chose manual release), then check the live listing on both stores.
 - ☐ Keep the privacy policy URL working; Apple checks it on every submission.
-- Plan a 1.0.1 with the small improvements noted in the README's *Current limitations* (debounced notes saving, reminder text) once real users start reporting.
+- Plan a 1.0.1 from what real users report; the README's *Current limitations* lists the known gaps.
 
 ## Checklist of decisions only you can make
 

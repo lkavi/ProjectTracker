@@ -89,6 +89,13 @@ xcodebuild test -project ProjectTracker.xcodeproj -scheme ProjectTracker \
 
 The unit tests cover the status rules, the lenient JSON decoding, the progress helpers and the import pipeline.
 
+The UI tests drive the real app on a simulator. They launch it with `--ui-testing`, which keeps all data in a scratch folder and skips iCloud, so they never touch real projects:
+
+```bash
+xcodebuild test -project ProjectTracker.xcodeproj -scheme ProjectTracker \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ProjectTrackerUITests
+```
+
 ## Project layout
 
 ```
@@ -100,16 +107,18 @@ ProjectTracker/                 App target (SwiftUI, iOS + macOS in one target)
   ResearchView.swift              Reference library tab
   NotificationSettingsView.swift  Settings: target buffer, daily reminders, iCloud status
   NotificationStore.swift         Reminder preferences and scheduling
-  ProjectStore.swift              Project JSON files, export/import, widget snapshots, legacy migration
+  ProjectStore.swift              Project JSON files, export/import, widget snapshots
   ArtifactsStore.swift            Notes and PDF persistence per stage
   ResearchStore.swift             Library persistence
   CloudContainer.swift            iCloud Drive resolution, coordinated file I/O, change monitoring
   PersonalizeGuideView.swift      The export → AI → import walkthrough shown after creating a project
+  StorageErrors.swift             Collects file-system failures for the "Couldn't save" alert
+  UITestSupport.swift             --ui-testing launch hooks: scratch data folder, no iCloud
   PrivacyInfo.xcprivacy           Privacy manifest
 Shared/                         Model, status rules and widget snapshot store (compiled into app and widget)
 ProjectTrackerWidget/           WidgetKit extension with a per-project configuration intent
 ProjectTrackerTests/            Unit tests (Swift Testing)
-ProjectTrackerUITests/          UI test scaffolding
+ProjectTrackerUITests/          XCUITest flows: first project, stage completion, relaunch, reset, settings, library
 Config/                         Shared.xcconfig and Local.xcconfig.example (Team ID lives in the ignored Local.xcconfig)
 Tools/generate_icon.swift       Script that renders the app icon PNGs
 docs/                           README screenshots, App Store listing copy, publishing guide and store screenshots
@@ -123,4 +132,3 @@ Everything is plain files in your own iCloud Drive container (or local Documents
 
 - Stages and tasks are edited through the JSON export/import round-trip (or an AI assistant). There is no in-app stage editor yet.
 - English only.
-- Reminder notifications repeat with the due-date text captured when they were scheduled.

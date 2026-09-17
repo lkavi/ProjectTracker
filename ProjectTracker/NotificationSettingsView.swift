@@ -39,31 +39,7 @@ struct NotificationSettingsView: View {
                     // ── General ──────────────────────────────────────────
                     sectionHeader("GENERAL")
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 14) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Personal target deadline")
-                                    .font(.callout.bold())
-                                Text("How many days before the official deadline you want to finish. Shown as 'Your Target' in the app and widget.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
-                            Picker("Buffer", selection: $bufferDays) {
-                                Text("Same day").tag(0)
-                                Text("1 day early").tag(1)
-                                Text("2 days early").tag(2)
-                                Text("3 days early").tag(3)
-                                Text("5 days early").tag(5)
-                                Text("1 week early").tag(7)
-                            }
-                            .frame(width: 170)
-                        }
-                        .padding(14)
-                        .background(Color.appControlBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
+                    targetCard
 
                     // ── Notifications ─────────────────────────────────────
                     sectionHeader("DAILY REMINDERS")
@@ -100,6 +76,59 @@ struct NotificationSettingsView: View {
         .onChange(of: bufferDays) { _, newValue in ProgressStore.saveBufferDays(newValue) }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
             cloudStatus = CloudContainer.status
+        }
+    }
+
+    // MARK: - Target buffer card
+
+    /// Side by side on the Mac; stacked on iPhone, where a fixed-width picker
+    /// next to the description squeezed the text into a narrow column.
+    @ViewBuilder
+    private var targetCard: some View {
+        #if os(iOS)
+        VStack(alignment: .leading, spacing: 12) {
+            targetCardText
+            HStack {
+                Text("Finish")
+                    .font(.callout)
+                Spacer()
+                bufferPicker.labelsHidden()
+            }
+        }
+        .padding(14)
+        .background(Color.appControlBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        #else
+        HStack(spacing: 14) {
+            targetCardText
+            Spacer()
+            bufferPicker.frame(width: 170)
+        }
+        .padding(14)
+        .background(Color.appControlBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        #endif
+    }
+
+    private var targetCardText: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Personal target deadline")
+                .font(.callout.bold())
+            Text("How many days before the official deadline you want to finish. Shown as 'Your Target' in the app and widget.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var bufferPicker: some View {
+        Picker("Target buffer", selection: $bufferDays) {
+            Text("Same day").tag(0)
+            Text("1 day early").tag(1)
+            Text("2 days early").tag(2)
+            Text("3 days early").tag(3)
+            Text("5 days early").tag(5)
+            Text("1 week early").tag(7)
         }
     }
 
@@ -278,57 +307,71 @@ struct StageNotifRowView: View {
             .toggleStyle(.switch)
 
             if pref.isEnabled {
-                HStack(spacing: 20) {
-                    // Time picker
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Picker("Hour", selection: $pref.hour) {
-                            ForEach(0..<24, id: \.self) { h in
-                                Text(String(format: "%02d", h)).tag(h)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 62)
-                        Text(":")
-                            .foregroundStyle(.secondary)
-                        Picker("Minute", selection: $pref.minute) {
-                            ForEach([0, 15, 30, 45], id: \.self) { m in
-                                Text(String(format: "%02d", m)).tag(m)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 62)
-                    }
-
-                    Spacer()
-
-                    // Day-of-week selector
-                    HStack(spacing: 4) {
-                        ForEach(Array(weekdayOrder.enumerated()), id: \.offset) { i, wd in
-                            let on = pref.weekdays.contains(wd)
-                            Button(action: {
-                                if on { pref.weekdays.remove(wd) }
-                                else  { pref.weekdays.insert(wd) }
-                            }) {
-                                Text(weekdayLabels[i])
-                                    .font(.caption.monospaced().bold())
-                                    .frame(width: 28, height: 26)
-                                    .background(on ? Color.blue : Color.appControlBackground.opacity(0.6))
-                                    .foregroundStyle(on ? .white : .secondary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                // Time and weekday controls need about 350pt side by side,
+                // which doesn't fit an iPhone card, so they stack there.
+                #if os(iOS)
+                VStack(alignment: .leading, spacing: 10) {
+                    timeControls
+                    weekdayControls
                 }
                 .padding(.leading, 4)
+                #else
+                HStack(spacing: 20) {
+                    timeControls
+                    Spacer()
+                    weekdayControls
+                }
+                .padding(.leading, 4)
+                #endif
             }
         }
         .padding(14)
         .background(Color.appControlBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var timeControls: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Picker("Hour", selection: $pref.hour) {
+                ForEach(0..<24, id: \.self) { h in
+                    Text(String(format: "%02d", h)).tag(h)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 62)
+            Text(":")
+                .foregroundStyle(.secondary)
+            Picker("Minute", selection: $pref.minute) {
+                ForEach([0, 15, 30, 45], id: \.self) { m in
+                    Text(String(format: "%02d", m)).tag(m)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 62)
+        }
+    }
+
+    private var weekdayControls: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(weekdayOrder.enumerated()), id: \.offset) { i, wd in
+                let on = pref.weekdays.contains(wd)
+                Button(action: {
+                    if on { pref.weekdays.remove(wd) }
+                    else  { pref.weekdays.insert(wd) }
+                }) {
+                    Text(weekdayLabels[i])
+                        .font(.caption.monospaced().bold())
+                        .frame(width: 28, height: 26)
+                        .background(on ? Color.blue : Color.appControlBackground.opacity(0.6))
+                        .foregroundStyle(on ? .white : .secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 

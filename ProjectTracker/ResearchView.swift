@@ -4,8 +4,17 @@ import UniformTypeIdentifiers
 // MARK: - Library tab (papers, links, PDFs, notes)
 
 struct ResearchView: View {
-    @State private var items: [ResearchItem] = ResearchStore.load()
+    @State private var items: [ResearchItem]
+    @State private var lastSaved: [ResearchItem]
+    @State private var pendingSave: Task<Void, Never>?
     @State private var showingAdd = false
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        let loaded = ResearchStore.load()
+        _items = State(initialValue: loaded)
+        _lastSaved = State(initialValue: loaded)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,7 +54,11 @@ struct ResearchView: View {
             }
         }
         .background(Color.appWindowBackground)
-        .onChange(of: items) { ResearchStore.save(items) }
+        .onChange(of: items) { scheduleSave() }
+        .onDisappear { saveNow() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { saveNow() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
             reloadFromCloud()
         }
@@ -53,15 +66,47 @@ struct ResearchView: View {
             reloadFromCloud()
         }
         .sheet(isPresented: $showingAdd) {
-            AddResearchItemSheet { newItem in items.insert(newItem, at: 0) }
+            AddResearchItemSheet { newItem in
+                items.insert(newItem, at: 0)
+                saveNow()
+            }
         }
     }
 
     /// Refreshes the list once the iCloud container resolves or synced files
-    /// change (e.g. an item added on the Mac arriving on the iPhone).
+    /// change (e.g. an item added on the Mac arriving on the iPhone). Local
+    /// edits are flushed first so a synced copy never overwrites unsaved typing.
     private func reloadFromCloud() {
+        saveNow()
         let fresh = ResearchStore.load()
-        if fresh != items { items = fresh }
+        if fresh != items {
+            lastSaved = fresh
+            items = fresh
+        }
+    }
+
+    // MARK: - Saving (debounced)
+
+    /// Title, link and note edits save after a one-second pause instead of on
+    /// every keystroke, so the index isn't rewritten in iCloud Drive per key.
+    /// Structural changes (add, delete) and leaving the tab save immediately.
+    private func scheduleSave() {
+        guard items != lastSaved else { return }
+        pendingSave?.cancel()
+        pendingSave = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            pendingSave = nil
+            saveNow()
+        }
+    }
+
+    private func saveNow() {
+        pendingSave?.cancel()
+        pendingSave = nil
+        guard items != lastSaved else { return }
+        lastSaved = items
+        ResearchStore.save(items)
     }
 
     private var emptyState: some View {
@@ -85,6 +130,7 @@ struct ResearchView: View {
     private func deleteItem(_ item: ResearchItem) {
         if let fn = item.filename { ResearchStore.deleteFile(filename: fn) }
         items.removeAll { $0.id == item.id }
+        saveNow()
     }
 }
 
@@ -232,7 +278,9 @@ struct AddResearchItemSheet: View {
             Grid(alignment: .leading, verticalSpacing: 14) {
                 GridRow {
                     Text("Title").foregroundStyle(.secondary).gridColumnAlignment(.trailing)
-                    TextField("Paper or resource name", text: $name).textFieldStyle(.roundedBorder)
+                    TextField("Paper or resource name", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityIdentifier("reference-title-field")
                 }
                 GridRow {
                     Text("Link").foregroundStyle(.secondary)
@@ -298,6 +346,7 @@ struct AddResearchItemSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                .accessibilityIdentifier("add-reference-button")
             }
         }
         .padding(28)

@@ -6,6 +6,8 @@ import AppKit
 @main
 struct ProjectTrackerApp: App {
     init() {
+        // UI tests start from an isolated, empty data set (no-op otherwise).
+        UITestSupport.resetIfNeeded()
         // Fetch the latest iCloud KV values before the first view appears.
         NSUbiquitousKeyValueStore.default.synchronize()
         // Resolve iCloud Drive container on a background thread (Apple-recommended).

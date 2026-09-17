@@ -127,40 +127,4 @@ enum ProgressStore {
               let refs = try? JSONDecoder().decode([ProjectRef].self, from: data) else { return [] }
         return refs
     }
-
-    // MARK: Legacy data (read once by ProjectStore's migration)
-
-    static let legacyProgressKey = "fyp-progress-v1"
-    static let legacyNotesKey    = "fyp-stage-notes-v1"
-
-    /// Old checkbox progress: [stageIndex: [taskIndex: checked]].
-    static func legacyProgress() -> [Int: [Int: Bool]] {
-        let data = NSUbiquitousKeyValueStore.default.data(forKey: legacyProgressKey)
-            ?? defaults?.data(forKey: legacyProgressKey)
-        guard let data,
-              let decoded = try? JSONDecoder().decode([String: [String: Bool]].self, from: data)
-        else { return [:] }
-        var result: [Int: [Int: Bool]] = [:]
-        for (stageKey, tasks) in decoded {
-            guard let stageId = Int(stageKey) else { continue }
-            var inner: [Int: Bool] = [:]
-            for (taskKey, value) in tasks {
-                if let taskIndex = Int(taskKey) { inner[taskIndex] = value }
-            }
-            result[stageId] = inner
-        }
-        return result
-    }
-
-    /// Old per-stage notes: [stageIndex: text].
-    static func legacyNotes() -> [Int: String] {
-        let data = NSUbiquitousKeyValueStore.default.data(forKey: legacyNotesKey)
-            ?? defaults?.data(forKey: legacyNotesKey)
-        guard let data,
-              let raw = try? JSONDecoder().decode([String: String].self, from: data)
-        else { return [:] }
-        var result: [Int: String] = [:]
-        for (k, v) in raw { if let id = Int(k) { result[id] = v } }
-        return result
-    }
 }

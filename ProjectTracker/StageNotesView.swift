@@ -4,12 +4,17 @@ import UniformTypeIdentifiers
 struct StageNotesView: View {
     let stageKey: String
     @State private var record: StageRecord
+    @State private var lastSaved: StageRecord
+    @State private var pendingSave: Task<Void, Never>?
     @State private var showFilePicker = false
     @State private var pendingPickIsFinal = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init(stageKey: String) {
         self.stageKey = stageKey
-        _record = State(initialValue: ArtifactsStore.load(stageKey: stageKey))
+        let loaded = ArtifactsStore.load(stageKey: stageKey)
+        _record = State(initialValue: loaded)
+        _lastSaved = State(initialValue: loaded)
     }
 
     private var drafts: [StageFile] { record.files.filter { !$0.isFinal } }
@@ -34,6 +39,10 @@ struct StageNotesView: View {
         }
         .padding(.top, 6)
         .onAppear { reloadFromCloud() }
+        .onDisappear { saveNow() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { saveNow() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
             reloadFromCloud()
         }
@@ -49,17 +58,46 @@ struct StageNotesView: View {
                                                    isFinal: pendingPickIsFinal,
                                                    stageKey: stageKey) {
                 record.files.append(file)
-                ArtifactsStore.save(record)
+                saveNow()
             }
         }
     }
 
-    /// Refreshes from iCloud when synced data arrives. Saves happen on every
-    /// keystroke, so disk always matches state for local edits — any diff here
-    /// is a genuine remote change (last writer wins).
+    // MARK: - Saving (debounced)
+
+    /// Typing saves after a one-second pause instead of on every keystroke.
+    /// Each save writes the notes file to iCloud Drive and rebuilds the widget
+    /// snapshots, and WidgetKit's daily refresh budget is small. Pending edits
+    /// are flushed when the view goes away, the app leaves the foreground, or
+    /// a synced copy is about to be merged in.
+    private func scheduleSave() {
+        guard record != lastSaved else { return }
+        pendingSave?.cancel()
+        pendingSave = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            pendingSave = nil
+            saveNow()
+        }
+    }
+
+    private func saveNow() {
+        pendingSave?.cancel()
+        pendingSave = nil
+        guard record != lastSaved else { return }
+        lastSaved = record
+        ArtifactsStore.save(record)
+    }
+
+    /// Refreshes from iCloud when synced data arrives. Local edits are flushed
+    /// first so a remote copy never overwrites unsaved typing (last writer wins).
     private func reloadFromCloud() {
+        saveNow()
         let fresh = ArtifactsStore.load(stageKey: stageKey)
-        if fresh != record { record = fresh }
+        if fresh != record {
+            lastSaved = fresh
+            record = fresh
+        }
     }
 
     // MARK: - Sub-views
@@ -78,7 +116,7 @@ struct StageNotesView: View {
                 .font(.body)
                 .frame(minHeight: 70, maxHeight: 180)
                 .scrollContentBackground(.hidden)
-                .onChange(of: record.notes) { ArtifactsStore.save(record) }
+                .onChange(of: record.notes) { scheduleSave() }
         }
         .padding(6)
         .background(Color.appTextBackground)
@@ -152,7 +190,7 @@ struct StageNotesView: View {
             set: { newName in
                 guard let idx = record.files.firstIndex(where: { $0.id == file.id }) else { return }
                 record.files[idx].name = newName
-                ArtifactsStore.save(record)
+                scheduleSave()
             }
         )
     }
@@ -171,6 +209,6 @@ struct StageNotesView: View {
     private func deleteFile(_ file: StageFile) {
         ArtifactsStore.deleteFile(file, stageKey: stageKey)
         record.files.removeAll { $0.id == file.id }
-        ArtifactsStore.save(record)
+        saveNow()
     }
 }

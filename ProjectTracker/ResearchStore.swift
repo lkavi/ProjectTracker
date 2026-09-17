@@ -42,8 +42,12 @@ enum ResearchStore {
     }
 
     static func save(_ items: [ResearchItem]) {
-        guard let data = try? JSONEncoder().encode(items) else { return }
-        CloudContainer.write(data, to: indexURL)
+        do {
+            let data = try JSONEncoder().encode(items)
+            CloudContainer.write(data, to: indexURL)
+        } catch {
+            StorageErrors.shared.report("save the reference library", error: error)
+        }
     }
 
     static func addFile(from sourceURL: URL) -> String? {

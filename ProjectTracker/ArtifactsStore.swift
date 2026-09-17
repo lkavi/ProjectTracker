@@ -46,8 +46,11 @@ enum ArtifactsStore {
     }
 
     static func save(_ record: StageRecord) {
-        if let data = try? JSONEncoder().encode(record) {
+        do {
+            let data = try JSONEncoder().encode(record)
             CloudContainer.write(data, to: notesURL(for: record.stageKey))
+        } catch {
+            StorageErrors.shared.report("save the stage notes", error: error)
         }
         // Notes may appear in the widget's snapshot of the next stage.
         ProjectStore.refreshWidgetSnapshots()
@@ -111,51 +114,6 @@ enum ArtifactsStore {
         if fullyMerged {
             try? FileManager.default.removeItem(at: localNotes)
             try? FileManager.default.removeItem(at: localFiles)
-        }
-    }
-
-    // MARK: - One-time legacy migration (index-keyed → UUID-keyed paths)
-
-    private struct LegacyStageRecord: Codable {
-        var stageId: Int
-        var notes: String = ""
-        var files: [StageFile] = []
-    }
-
-    /// Moves notes/stage-<i>.json → notes/<stageKey>.json and
-    /// files/stage-<i>/ → files/<stageKey>/. Union-merges with anything
-    /// already at the destination (another device may have migrated first),
-    /// and prefers the non-empty KV notes text that used to be the sync
-    /// source of truth. Old files are left in place for safety.
-    static func migrateLegacy(stageIndex i: Int, stageKey: String, kvNotes: String?) {
-        let oldNotesURL = baseURL.appendingPathComponent("notes/stage-\(i).json")
-        let oldData = CloudContainer.read(at: oldNotesURL)
-        let old = oldData.flatMap { try? JSONDecoder().decode(LegacyStageRecord.self, from: $0) }
-
-        var record = load(stageKey: stageKey)   // union with an earlier migration
-        if let kvNotes, !kvNotes.isEmpty {
-            record.notes = kvNotes
-        } else if record.notes.isEmpty, let oldNotes = old?.notes, !oldNotes.isEmpty {
-            record.notes = oldNotes
-        }
-        if let oldFiles = old?.files {
-            let existing = Set(record.files.map(\.id))
-            record.files.append(contentsOf: oldFiles.filter { !existing.contains($0.id) })
-        }
-        if !record.notes.isEmpty || !record.files.isEmpty {
-            save(record)
-        }
-
-        // Copy the PDFs themselves into the new stage directory.
-        let oldDir = baseURL.appendingPathComponent("files/stage-\(i)", isDirectory: true)
-        if let pdfs = try? FileManager.default.contentsOfDirectory(
-            at: oldDir, includingPropertiesForKeys: nil) {
-            for pdf in pdfs {
-                let dest = fileURL(stageKey: stageKey, filename: pdf.lastPathComponent)
-                if CloudContainer.downloadStatus(dest) == nil {
-                    _ = CloudContainer.copyIn(from: pdf, to: dest)
-                }
-            }
         }
     }
 }
