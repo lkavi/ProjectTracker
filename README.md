@@ -1,6 +1,6 @@
 # Project Tracker
 
-A stage-by-stage deadline tracker for a thesis, dissertation, final-year project, or any smaller personal project that runs through a fixed sequence of milestones. Native SwiftUI for iPhone, iPad and Mac, with iCloud sync, a home-screen widget, and no accounts or analytics.
+A stage-by-stage deadline tracker for university and academic projects (thesis, dissertation, final-year or capstone project) and for smaller personal projects that run through a fixed sequence of milestones. Native SwiftUI for iPhone, iPad and Mac, with iCloud sync, a home-screen widget, and no accounts or analytics.
 
 <p align="center">
   <img src="docs/screenshots/ios-pipeline.png" width="200" alt="Pipeline view on iPhone: progress bar, urgent banner, next-up stage with checklist">
@@ -112,7 +112,7 @@ ProjectTrackerTests/            Unit tests (Swift Testing)
 ProjectTrackerUITests/          UI test scaffolding
 Config/                         Shared.xcconfig and Local.xcconfig.example (Team ID lives in the ignored Local.xcconfig)
 Tools/generate_icon.swift       Script that renders the app icon PNGs
-docs/                           Screenshots and the App Store listing draft
+docs/                           README screenshots, App Store listing copy, publishing guide and store screenshots
 ```
 
 ## Where your data lives
