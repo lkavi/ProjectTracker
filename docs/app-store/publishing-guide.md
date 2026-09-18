@@ -10,6 +10,7 @@ A step-by-step path from this repository to a live listing. Everything marked �
 - ✅ Export compliance answered in `Info.plist` (`ITSAppUsesNonExemptEncryption = NO`), so no encryption questionnaire at upload.
 - ✅ Mac App Sandbox and user-selected file access enabled through build settings.
 - ✅ App category (`public.app-category.productivity`), launch screen, iOS 1024 px and full macOS icon set.
+- ✅ Supported interface orientations declared for iPhone and iPad (App Store Connect rejects an iPad-capable bundle without them).
 - ✅ Version 1.0, build 1, identical in the app and the widget (App Store requires the extension to match).
 - ✅ Privacy policy published at https://github.com/lkavi/ProjectTracker/blob/main/PRIVACY.md.
 - ✅ Store copy and screenshots in [`listing.md`](listing.md) and [`screenshots/`](screenshots/).
