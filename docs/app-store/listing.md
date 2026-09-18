@@ -93,11 +93,12 @@ Plain, unframed captures of the real app with sample data, at the exact sizes Ap
 
 | Device slot | Size | Files | Suggested caption (if you add framed marketing versions later) |
 |---|---|---|---|
-| iPhone 6.9" (required) | 1320 × 2868 | `iphone-6.9/01-pipeline.png` | See what is next and what is overdue |
-| | | `iphone-6.9/02-stage-notes.png` | Every stage: deadline, target, checklist, notes, PDFs |
-| | | `iphone-6.9/03-library.png` | Keep papers, links and notes together |
-| | | `iphone-6.9/04-settings.png` | Your own target buffer and daily reminders |
-| iPad 13" (required while iPad is supported) | 2064 × 2752 | `ipad-13/01-pipeline.png`, `ipad-13/02-library.png` | Same captions |
+| iPhone 6.5" (the slot App Store Connect asks for first) | 1284 × 2778 | `iphone-6.5/01-pipeline.png` | See what is next and what is overdue |
+| | | `iphone-6.5/02-stage-notes.png` | Every stage: deadline, target, checklist, notes, PDFs |
+| | | `iphone-6.5/03-library.png` | Keep papers, links and notes together |
+| | | `iphone-6.5/04-settings.png` | Your own target buffer and daily reminders |
+| iPhone 6.9" (optional extra slot) | 1320 × 2868 | `iphone-6.9/01…04.png` | Same captions |
+| iPad 12.9" / 13" | 2048 × 2732 and 2064 × 2752 | `ipad-12.9/*.png`, `ipad-13/*.png` | Same captions |
 | Mac | 2880 × 1800 | `mac/01-pipeline.png` | Same on your Mac, synced by iCloud |
 
-App Store Connect scales the 6.9" and 13" sets to every smaller device, so no other sizes are needed.
+The 6.5" and 12.9" sets are derived from the larger captures (scaled to width, then trimmed a few pixels top and bottom). Upload whichever size a slot asks for; App Store Connect scales the accepted set to every smaller device.
