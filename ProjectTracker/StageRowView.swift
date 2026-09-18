@@ -14,6 +14,12 @@ struct StageRowView: View {
 
     private var status: StageStatus { stage.status(done: isDone, daysEarly: bufferDays) }
 
+    /// A finished stage shows when it was due; an open one shows how long is left.
+    private var secondaryText: String {
+        if status == .passed, let deadline = stage.deadlineDate { return formatted(deadline) }
+        return stage.dueText()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Button {
@@ -30,7 +36,7 @@ struct StageRowView: View {
                             .multilineTextAlignment(.leading)
                         HStack(spacing: 6) {
                             StatusBadge(status: status)
-                            Text("· \(stage.dueText())")
+                            Text("· \(secondaryText)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let weight = stage.weight {

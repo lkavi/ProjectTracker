@@ -111,6 +111,13 @@ Then, on the app-level pages:
 - ☐ Keep the privacy policy URL working; Apple checks it on every submission.
 - Plan a 1.0.1 from what real users report; the README's *Current limitations* lists the known gaps.
 
+## Releasing an update (1.1 and later)
+
+1. ☐ Bump `MARKETING_VERSION` (e.g. 1.1) and `CURRENT_PROJECT_VERSION` (e.g. 2) in **both** the app and the widget targets. Identical values are required; a reused build number is refused.
+2. ☐ Archive and upload iOS and macOS exactly as in section 5 (release Xcode, `-allowProvisioningUpdates`).
+3. ☐ In App Store Connect, click **+ Version** on the app page, enter the version, paste the new *What's New* text from `listing.md`, select the processed build, and replace any screenshots that changed (`docs/app-store/screenshots/`).
+4. ☐ Submit. Updates go through the same review as a first release, usually faster.
+
 ## Checklist of decisions only you can make
 
 - ☐ Final store name (uniqueness is checked live when you create the record).
