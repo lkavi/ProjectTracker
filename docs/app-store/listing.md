@@ -100,5 +100,8 @@ Plain, unframed captures of the real app with sample data, at the exact sizes Ap
 | iPhone 6.9" (optional extra slot) | 1320 × 2868 | `iphone-6.9/01…04.png` | Same captions |
 | iPad 12.9" / 13" | 2048 × 2732 and 2064 × 2752 | `ipad-12.9/*.png`, `ipad-13/*.png` | Same captions |
 | Mac | 2880 × 1800 | `mac/01-pipeline.png` | Same on your Mac, synced by iCloud |
+| | | `mac/02-library.png` | Papers, links and notes in one place |
+| | | `mac/03-settings.png` | Target buffer, reminders and iCloud status |
+| | | `mac/04-pipeline-light.png` | Light and dark appearance |
 
 The 6.5" and 12.9" sets are derived from the larger captures (scaled to width, then trimmed a few pixels top and bottom). Upload whichever size a slot asks for; App Store Connect scales the accepted set to every smaller device.

@@ -16,6 +16,25 @@ enum UITestSupport {
             .appendingPathComponent("ProjectTrackerUITests", isDirectory: true)
     }
 
+    /// `--open-tab=library` (or `pipeline`) chooses the tab shown at launch.
+    /// Used by UI tests and for screenshots; ignored without `--ui-testing`.
+    static var initialTab: AppTab? {
+        guard isActive else { return nil }
+        for arg in ProcessInfo.processInfo.arguments where arg.hasPrefix("--open-tab=") {
+            switch arg.dropFirst("--open-tab=".count) {
+            case "library":  return .library
+            case "pipeline": return .pipeline
+            default:         return nil
+            }
+        }
+        return nil
+    }
+
+    /// `--open-settings` presents the Settings sheet right after launch.
+    static var opensSettingsAtLaunch: Bool {
+        isActive && ProcessInfo.processInfo.arguments.contains("--open-settings")
+    }
+
     /// Call once at launch, before anything reads preferences or files.
     static func resetIfNeeded() {
         guard isActive, shouldReset else { return }

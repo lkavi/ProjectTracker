@@ -25,7 +25,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectedTab: AppTab = .pipeline
+    @State private var selectedTab: AppTab = UITestSupport.initialTab ?? .pipeline
 
     // Projects
     @State private var projects: [Project] = []
@@ -190,6 +190,9 @@ struct ContentView: View {
             guard !hasLoaded else { return }
             hasLoaded = true
             reload()
+            if UITestSupport.opensSettingsAtLaunch {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { showNotificationSettings = true }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
             reload()
