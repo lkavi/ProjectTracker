@@ -18,7 +18,7 @@ A step-by-step path from this repository to a live listing. Everything marked �
 
 - ☐ An active **Apple Developer Program** membership for the team whose ID is in your `Config/Local.xcconfig`.
 - ☐ In App Store Connect → *Business* (Agreements, Tax, and Banking), the **Free Apps** agreement accepted. Paid-apps banking details are not needed for a free app.
-- ☐ Xcode 26 or later, signed in with the same Apple Account (Xcode → Settings → Accounts).
+- ☐ Xcode 26 or later, signed in with the same Apple Account (Xcode → Settings → Accounts). Archive and upload with a **release** Xcode: App Store Connect rejects builds made with beta versions (on this Mac that means `/Applications/Xcode.app`, not `Xcode-beta.app`).
 - ☐ A real iPhone and the Mac itself for testing. The simulator cannot sign in to iCloud, so sync, the widget picker and notifications must be checked on hardware.
 
 ## 2. Identifiers and capabilities (automatic, but verify)
@@ -64,7 +64,14 @@ xcodebuild -project ProjectTracker.xcodeproj -scheme ProjectTracker \
   -destination 'generic/platform=macOS' archive -archivePath build/macOS.xcarchive
 ```
 
-Then open each `.xcarchive` in the Organizer (double-click) to validate and upload.
+Then open each `.xcarchive` in the Organizer (double-click) to validate and upload, or export and upload from the command line with an options plist (`method` = `app-store-connect`, `signingStyle` = `automatic`, `teamID` = your team, `destination` = `export` to produce the `.ipa`/`.pkg` or `upload` to send it straight to App Store Connect):
+
+```bash
+xcodebuild -exportArchive -archivePath build/iOS.xcarchive \
+  -exportOptionsPlist ExportOptions.plist -exportPath build/export-ios -allowProvisioningUpdates
+```
+
+`destination = upload` only works once the app record exists in App Store Connect.
 
 4. ☐ Wait for the "has completed processing" email for each build (usually 5–30 minutes).
 5. For every later upload, bump `CURRENT_PROJECT_VERSION` in **both** the app and the widget target (or `MARKETING_VERSION` for a new version). Uploads with a reused build number are rejected.
