@@ -25,7 +25,7 @@ A step-by-step path from this repository to a live listing. Everything marked �
 ## 2. Identifiers and capabilities (automatic, but verify)
 
 1. ☐ Open `ProjectTracker.xcodeproj`, select the **ProjectTracker** target → *Signing & Capabilities*. With *Automatically manage signing* on and your team resolved from `Config/Local.xcconfig`, Xcode registers the App ID, the iCloud container `iCloud.lkavi.fyppipeline` and the App Group `group.lkavi.fyppipeline`, and creates the provisioning profiles.
-2. ☐ Repeat for the **ProjectTrackerWidgetExtension** target (App Groups only).
+2. ☐ Repeat for the **ProjectTrackerWidgetExtension** and **ProjectTrackerShareExtension** targets (App Groups only). The share extension is iOS-only and is what makes the app appear in other apps' share sheets.
 3. ☐ Confirm at https://developer.apple.com/account → *Identifiers*: the app's App ID has **iCloud** (CloudKit off, iCloud Documents on, container assigned) and **App Groups**; the widget's App ID has **App Groups**. Both must be enabled for **iOS** and **macOS** platforms.
 4. Troubleshooting: if signing complains about `com.apple.developer.icloud-extended-share-access`, delete that key from `ProjectTracker/ProjectTracker.entitlements`; it is optional.
 

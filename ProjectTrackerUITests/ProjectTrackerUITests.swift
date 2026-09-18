@@ -144,6 +144,25 @@ final class ProjectTrackerUITests: XCTestCase {
         XCTAssertTrue(progressSummary.waitForExistence(timeout: 5))
     }
 
+    func testPasteDeadlineListBuildsStages() {
+        createProject(named: "Thesis", dismissGuide: false)
+        app.buttons["guide-paste-deadlines-button"].tap()
+
+        let field = app.textViews["deadline-list-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Proposal - 1 December 2026\nFinal report - 1 April 2027")
+        XCTAssertTrue(app.staticTexts["deadline-list-summary"].label.hasPrefix("Found 2 stages"))
+
+        app.buttons["review-stages-button"].tap()
+        let done = app.buttons["save-stages-button"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+
+        XCTAssertTrue(progressSummary.waitForExistence(timeout: 5))
+        XCTAssertEqual(progressSummary.label, "0 of 2 stages done")
+    }
+
     func testLibraryAddsReference() {
         let tab = app.tabBars.buttons["Library"]
         (tab.exists ? tab : element(labeled: "Library")).tap()

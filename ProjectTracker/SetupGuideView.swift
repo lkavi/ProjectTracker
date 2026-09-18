@@ -6,6 +6,7 @@ struct SetupGuideView: View {
     let projectName: String
     let onCopyPrompt: () -> Void
     let onImportClipboard: () -> Void
+    let onPasteDeadlines: () -> Void
     let onEditStages: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var copied = false
@@ -15,7 +16,7 @@ struct SetupGuideView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Set up your stages")
                     .font(.title2.bold())
-                Text("“\(projectName)” starts from a template with placeholder dates. Three ways to make it yours:")
+                Text("“\(projectName)” starts from a template with placeholder dates. Pick the way that suits you:")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -49,6 +50,18 @@ struct SetupGuideView: View {
 
                     option(
                         number: 2,
+                        title: "Paste your deadline list",
+                        detail: "Copy the deadline table or list from your handbook and paste it. Each line with a date becomes a stage; bullet points under it become tasks. No AI involved."
+                    ) {
+                        Button("Paste Deadlines") {
+                            dismiss()
+                            onPasteDeadlines()
+                        }
+                        .accessibilityIdentifier("guide-paste-deadlines-button")
+                    }
+
+                    option(
+                        number: 3,
                         title: "Edit the stages yourself",
                         detail: "Add, rename and reorder stages and tasks, and set each deadline and weighting."
                     ) {
@@ -60,9 +73,9 @@ struct SetupGuideView: View {
                     }
 
                     option(
-                        number: 3,
-                        title: "Import a project file",
-                        detail: "Already have a Project Tracker file from a coursemate or an earlier export? Use Project menu → Import File…, or open the file from Files, Mail or Finder."
+                        number: 4,
+                        title: "Use a coursemate's template",
+                        detail: "Someone on your course already set theirs up? Ask them for Project menu → Share as Template, then open the file they send, or share it to Project Tracker from any app."
                     ) {
                         EmptyView()
                     }
@@ -111,5 +124,5 @@ struct SetupGuideView: View {
 }
 
 #Preview {
-    SetupGuideView(projectName: "MSc Dissertation", onCopyPrompt: {}, onImportClipboard: {}, onEditStages: {})
+    SetupGuideView(projectName: "MSc Dissertation", onCopyPrompt: {}, onImportClipboard: {}, onPasteDeadlines: {}, onEditStages: {})
 }

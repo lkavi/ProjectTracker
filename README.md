@@ -33,7 +33,10 @@ It is deliberately a single-person tool. One person, their stages, their deadlin
 - **Multiple projects.** Create, switch, rename and delete projects. Resetting progress requires typing CONFIRM.
 - **Widget in three sizes.** Next stage, deadline, target, task checklist and notes. Long-press the widget to pin it to one project or let it follow whichever project is active.
 - **iCloud sync.** Projects, notes, PDFs and references sync between your Mac and iPhone through your own iCloud Drive. It also works offline and without an iCloud account, using local storage.
-- **Tailor the template with an AI assistant.** Copy a ready-made prompt, paste it into any assistant, answer its questions, then paste its reply back with Import from Clipboard. A preview shows what will change before anything is saved, and ticked tasks survive the round-trip. Project files can also be opened directly from Files, Mail or Finder.
+- **Tailor the template with an AI assistant.** Copy a ready-made prompt, paste it into any assistant, answer its questions, then paste its reply back with Import from Clipboard. A preview shows what will change before anything is saved, and ticked tasks survive the round-trip.
+- **Share to Project Tracker from any app.** On iPhone and iPad the app appears in the share sheet, so the assistant's reply, or a project file someone sent you, can be shared straight into it. Files also open directly from Files, Mail or Finder.
+- **Paste a deadline list.** Paste the deadline table from a module handbook; every line with a date becomes a stage and bullet points become tasks, ready to tidy in the editor. No AI involved.
+- **Share as Template.** Send your stages to coursemates with progress stripped out. They open the file and get their own copy.
 
 ## Tailoring a project with an AI assistant
 
@@ -109,6 +112,8 @@ ProjectTracker/                 App target (SwiftUI, iOS + macOS in one target)
   SetupGuideView.swift            The three ways to shape a new project: AI prompt, editor, file
   ProjectTemplates.swift          Built-in templates with relative deadline positions
   Components.swift                Status badge, tag capsule, section title, card surface
+  PasteDeadlinesView.swift        Paste a deadline list, review the draft stages
+  DeadlineListParser.swift        Dates, titles, weights and bullet tasks out of pasted text
   StageRowView.swift              Collapsible stage card with checklist
   StageNotesView.swift            Per-stage notes plus draft / final PDFs
   ResearchView.swift              Reference library tab
@@ -121,8 +126,9 @@ ProjectTracker/                 App target (SwiftUI, iOS + macOS in one target)
   StorageErrors.swift             Collects file-system failures for the "Couldn't save" alert
   UITestSupport.swift             --ui-testing launch hooks: scratch data folder, no iCloud
   PrivacyInfo.xcprivacy           Privacy manifest
-Shared/                         Model, status rules and widget snapshot store (compiled into app and widget)
+Shared/                         Model, status rules, widget snapshot store and the share inbox (compiled into app, widget and share extension)
 ProjectTrackerWidget/           WidgetKit extension with a per-project configuration intent
+ProjectTrackerShare/            iOS share extension: drops shared text or files into the App Group inbox
 ProjectTrackerTests/            Unit tests (Swift Testing)
 ProjectTrackerUITests/          XCUITest flows: first project, stage completion, relaunch, reset, settings, library
 Config/                         Shared.xcconfig and Local.xcconfig.example (Team ID lives in the ignored Local.xcconfig)

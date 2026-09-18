@@ -1,5 +1,74 @@
 import SwiftUI
 
+/// The editable list of stages. Lives inside a NavigationStack supplied by
+/// the caller, so the paste-a-deadline-list flow can reuse it as a second
+/// step and the stage editor sheet can wrap it directly.
+struct StageListEditor: View {
+    @Binding var stages: [ProjectStage]
+
+    /// Empty task titles are dropped; blank stage titles get a placeholder.
+    static func cleaned(_ stages: [ProjectStage]) -> [ProjectStage] {
+        stages.map { stage in
+            var copy = stage
+            copy.title = stage.title.trimmingCharacters(in: .whitespaces)
+            if copy.title.isEmpty { copy.title = "Untitled stage" }
+            copy.tasks = stage.tasks.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
+            return copy
+        }
+    }
+
+    /// Every stage needs at least one task, and there must be a stage.
+    static func isValid(_ stages: [ProjectStage]) -> Bool {
+        let c = cleaned(stages)
+        return !c.isEmpty && c.allSatisfy { !$0.tasks.isEmpty }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach($stages) { $stage in
+                    NavigationLink {
+                        StageDetailEditor(stage: $stage)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(stage.title.isEmpty ? "Untitled stage" : stage.title)
+                            Text(subtitle(for: stage))
+                                .font(.caption)
+                                .foregroundStyle(stage.tasks.isEmpty ? .red : .secondary)
+                        }
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            stages.removeAll { $0.id == stage.id }
+                        } label: {
+                            Label("Delete Stage", systemImage: "trash")
+                        }
+                    }
+                }
+                .onMove { stages.move(fromOffsets: $0, toOffset: $1) }
+                .onDelete { stages.remove(atOffsets: $0) }
+
+                Button {
+                    stages.append(ProjectStage(title: "", tasks: [ProjectTask(title: "")]))
+                } label: {
+                    Label("Add Stage", systemImage: "plus")
+                }
+                .accessibilityIdentifier("add-stage-button")
+            } footer: {
+                Text("Drag to reorder. Every stage needs at least one task. Ticked tasks keep their progress when renamed or moved.")
+            }
+        }
+    }
+
+    private func subtitle(for stage: ProjectStage) -> String {
+        var parts: [String] = []
+        parts.append(stage.tasks.isEmpty ? "No tasks yet" : "\(stage.tasks.count) task\(stage.tasks.count == 1 ? "" : "s")")
+        if let d = stage.deadlineDate { parts.append(d.formatted(date: .abbreviated, time: .omitted)) }
+        if let w = stage.weight { parts.append(w) }
+        return parts.joined(separator: " · ")
+    }
+}
+
 /// Add, rename, reorder and delete stages and tasks by hand. Edits a copy
 /// and hands the result back on Done; ids are kept, so progress survives.
 struct StageEditorView: View {
@@ -12,89 +81,33 @@ struct StageEditorView: View {
         self.onSave = onSave
     }
 
-    /// Empty task titles are dropped; every stage must keep at least one task.
-    private var cleaned: [ProjectStage] {
-        stages.map { stage in
-            var copy = stage
-            copy.title = stage.title.trimmingCharacters(in: .whitespaces)
-            if copy.title.isEmpty { copy.title = "Untitled stage" }
-            copy.tasks = stage.tasks.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
-            return copy
-        }
-    }
-
-    private var canSave: Bool {
-        !cleaned.isEmpty && cleaned.allSatisfy { !$0.tasks.isEmpty }
-    }
-
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    ForEach($stages) { $stage in
-                        NavigationLink {
-                            StageDetailEditor(stage: $stage)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(stage.title.isEmpty ? "Untitled stage" : stage.title)
-                                Text(subtitle(for: stage))
-                                    .font(.caption)
-                                    .foregroundStyle(stage.tasks.isEmpty ? .red : .secondary)
-                            }
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                stages.removeAll { $0.id == stage.id }
-                            } label: {
-                                Label("Delete Stage", systemImage: "trash")
-                            }
-                        }
-                    }
-                    .onMove { stages.move(fromOffsets: $0, toOffset: $1) }
-                    .onDelete { stages.remove(atOffsets: $0) }
-
-                    Button {
-                        stages.append(ProjectStage(title: "", tasks: [ProjectTask(title: "")]))
-                    } label: {
-                        Label("Add Stage", systemImage: "plus")
-                    }
-                    .accessibilityIdentifier("add-stage-button")
-                } footer: {
-                    Text("Drag to reorder. Every stage needs at least one task. Ticked tasks keep their progress when renamed or moved.")
-                }
-            }
-            .navigationTitle("Edit Stages")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
+            StageListEditor(stages: $stages)
+                .navigationTitle("Edit Stages")
                 #if os(iOS)
-                ToolbarItem(placement: .topBarTrailing) { EditButton() }
+                .navigationBarTitleDisplayMode(.inline)
                 #endif
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        onSave(cleaned)
-                        dismiss()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
                     }
-                    .disabled(!canSave)
-                    .accessibilityIdentifier("save-stages-button")
+                    #if os(iOS)
+                    ToolbarItem(placement: .topBarTrailing) { EditButton() }
+                    #endif
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            onSave(StageListEditor.cleaned(stages))
+                            dismiss()
+                        }
+                        .disabled(!StageListEditor.isValid(stages))
+                        .accessibilityIdentifier("save-stages-button")
+                    }
                 }
-            }
         }
         #if os(macOS)
         .frame(minWidth: 560, minHeight: 620)
         #endif
-    }
-
-    private func subtitle(for stage: ProjectStage) -> String {
-        var parts: [String] = []
-        parts.append(stage.tasks.isEmpty ? "No tasks yet" : "\(stage.tasks.count) task\(stage.tasks.count == 1 ? "" : "s")")
-        if let d = stage.deadlineDate { parts.append(d.formatted(date: .abbreviated, time: .omitted)) }
-        if let w = stage.weight { parts.append(w) }
-        return parts.joined(separator: " · ")
     }
 }
 

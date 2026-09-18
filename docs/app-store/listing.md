@@ -37,6 +37,7 @@ Lay out the stages you actually have to get through, each with its deadline, its
 WHAT YOU GET
 • Templates for dissertations, final-year projects, PhD years, exams and personal projects
 • Stages with deadlines, weightings and task checklists, editable in the app
+• Paste a deadline list from your handbook to get draft stages, or share a template with coursemates
 • A "next up" card and an urgent banner for anything due within three days
 • Your own target buffer: aim 1 to 7 days ahead of every deadline
 • Notes plus draft and final PDFs attached to each stage
@@ -62,6 +63,9 @@ No account, no analytics, no server. Your projects live in your own iCloud Drive
 > • Templates for final-year projects, dissertations, PhD years, exams and personal projects, with deadlines spread between your start date and final deadline
 > • Edit stages and tasks in the app: add, rename, reorder, delete, set deadlines and weightings
 > • Copy a ready-made prompt for your AI assistant and import its reply straight from the clipboard, with a preview of what will change
+> • Share the assistant's reply, or a coursemate's file, straight to Project Tracker from any app's share sheet
+> • Paste a deadline list from your handbook and get draft stages, no AI needed
+> • Share as Template sends your stages to coursemates with your progress stripped out
 > • Open project files directly from Files, Mail or Finder
 > • A calmer look: plain wording, standard type, a new icon, and a widget that matches the home screen
 

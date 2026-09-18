@@ -14,6 +14,9 @@
 		2417FCC2300939F60099599A /* ProjectTrackerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2417FCAE300939F50099599A /* ProjectTrackerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2417FCCD30093B7F0099599A /* Stage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2417FCA13009393C0099599A /* Stage.swift */; };
 		2417FCCE30093B8D0099599A /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2417FCA03009393C0099599A /* ProgressStore.swift */; };
+		5A4E000B000000000000AAAA /* ProjectTrackerShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A4E0002000000000000AAAA /* ProjectTrackerShareExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5A4E000F000000000000AAAA /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4E000E000000000000AAAA /* SharedInbox.swift */; };
+		5A4E0010000000000000AAAA /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4E000E000000000000AAAA /* SharedInbox.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +41,13 @@
 			remoteGlobalIDString = 2417FCAD300939F50099599A;
 			remoteInfo = ProjectTrackerWidgetExtension;
 		};
+		5A4E000D000000000000AAAA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2417FC5D300938F50099599A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A4E0001000000000000AAAA;
+			remoteInfo = ProjectTrackerShareExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,6 +58,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				2417FCC2300939F60099599A /* ProjectTrackerWidgetExtension.appex in Embed Foundation Extensions */,
+				5A4E000B000000000000AAAA /* ProjectTrackerShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -66,6 +77,9 @@
 		406E635B300B864500A1E38F /* ProjectTrackerWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProjectTrackerWidgetExtension.entitlements; sourceTree = "<group>"; };
 		C0DE0001000000000000AAAA /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		C0DE0002000000000000AAAA /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Local.xcconfig.example; sourceTree = "<group>"; };
+		5A4E0002000000000000AAAA /* ProjectTrackerShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ProjectTrackerShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A4E0011000000000000AAAA /* ProjectTrackerShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProjectTrackerShareExtension.entitlements; sourceTree = "<group>"; };
+		5A4E000E000000000000AAAA /* SharedInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedInbox.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -82,6 +96,13 @@
 				Info.plist,
 			);
 			target = 2417FC64300938F50099599A /* ProjectTracker */;
+		};
+		5A4E000A000000000000AAAA /* Exceptions for "ProjectTrackerShare" folder in "ProjectTrackerShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5A4E0001000000000000AAAA /* ProjectTrackerShareExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -110,6 +131,14 @@
 				2417FCC3300939F60099599A /* Exceptions for "ProjectTrackerWidget" folder in "ProjectTrackerWidgetExtension" target */,
 			);
 			path = ProjectTrackerWidget;
+			sourceTree = "<group>";
+		};
+		5A4E0009000000000000AAAA /* ProjectTrackerShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5A4E000A000000000000AAAA /* Exceptions for "ProjectTrackerShare" folder in "ProjectTrackerShareExtension" target */,
+			);
+			path = ProjectTrackerShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -145,6 +174,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A4E0007000000000000AAAA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -153,11 +189,13 @@
 			children = (
 				C0DE0003000000000000AAAA /* Config */,
 				406E635B300B864500A1E38F /* ProjectTrackerWidgetExtension.entitlements */,
+				5A4E0011000000000000AAAA /* ProjectTrackerShareExtension.entitlements */,
 				2417FCA23009393C0099599A /* Shared */,
 				2417FC67300938F50099599A /* ProjectTracker */,
 				2417FC7A300938F60099599A /* ProjectTrackerTests */,
 				2417FC84300938F60099599A /* ProjectTrackerUITests */,
 				2417FCB4300939F50099599A /* ProjectTrackerWidget */,
+				5A4E0009000000000000AAAA /* ProjectTrackerShare */,
 				2417FCAF300939F50099599A /* Frameworks */,
 				2417FC66300938F50099599A /* Products */,
 			);
@@ -170,6 +208,7 @@
 				2417FC77300938F60099599A /* ProjectTrackerTests.xctest */,
 				2417FC81300938F60099599A /* ProjectTrackerUITests.xctest */,
 				2417FCAE300939F50099599A /* ProjectTrackerWidgetExtension.appex */,
+				5A4E0002000000000000AAAA /* ProjectTrackerShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				2417FCA03009393C0099599A /* ProgressStore.swift */,
+				5A4E000E000000000000AAAA /* SharedInbox.swift */,
 				2417FCA13009393C0099599A /* Stage.swift */,
 			);
 			path = Shared;
@@ -217,6 +257,7 @@
 			);
 			dependencies = (
 				2417FCC1300939F60099599A /* PBXTargetDependency */,
+				5A4E000C000000000000AAAA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2417FC67300938F50099599A /* ProjectTracker */,
@@ -296,6 +337,28 @@
 			productReference = 2417FCAE300939F50099599A /* ProjectTrackerWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		5A4E0001000000000000AAAA /* ProjectTrackerShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A4E0003000000000000AAAA /* Build configuration list for PBXNativeTarget "ProjectTrackerShareExtension" */;
+			buildPhases = (
+				5A4E0006000000000000AAAA /* Sources */,
+				5A4E0007000000000000AAAA /* Frameworks */,
+				5A4E0008000000000000AAAA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5A4E0009000000000000AAAA /* ProjectTrackerShare */,
+			);
+			name = ProjectTrackerShareExtension;
+			packageProductDependencies = (
+			);
+			productName = ProjectTrackerShareExtension;
+			productReference = 5A4E0002000000000000AAAA /* ProjectTrackerShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -320,6 +383,9 @@
 					2417FCAD300939F50099599A = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
+					5A4E0001000000000000AAAA = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 				};
 			};
 			buildConfigurationList = 2417FC60300938F50099599A /* Build configuration list for PBXProject "ProjectTracker" */;
@@ -340,6 +406,7 @@
 				2417FC76300938F60099599A /* ProjectTrackerTests */,
 				2417FC80300938F60099599A /* ProjectTrackerUITests */,
 				2417FCAD300939F50099599A /* ProjectTrackerWidgetExtension */,
+				5A4E0001000000000000AAAA /* ProjectTrackerShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -373,6 +440,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A4E0008000000000000AAAA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -381,6 +455,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2417FCA63009393C0099599A /* ProgressStore.swift in Sources */,
+				5A4E000F000000000000AAAA /* SharedInbox.swift in Sources */,
 				2417FCA83009393C0099599A /* Stage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -408,6 +483,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A4E0006000000000000AAAA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A4E0010000000000000AAAA /* SharedInbox.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -425,6 +508,12 @@
 			isa = PBXTargetDependency;
 			target = 2417FCAD300939F50099599A /* ProjectTrackerWidgetExtension */;
 			targetProxy = 2417FCC0300939F60099599A /* PBXContainerItemProxy */;
+		};
+		5A4E000C000000000000AAAA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = 5A4E0001000000000000AAAA /* ProjectTrackerShareExtension */;
+			targetProxy = 5A4E000D000000000000AAAA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -795,6 +884,64 @@
 			};
 			name = Release;
 		};
+		5A4E0004000000000000AAAA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ProjectTrackerShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ProjectTrackerShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Project Tracker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkavi.ProjectTracker.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A4E0005000000000000AAAA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ProjectTrackerShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ProjectTrackerShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Project Tracker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lkavi.ProjectTracker.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -839,6 +986,15 @@
 			buildConfigurations = (
 				2417FCC5300939F60099599A /* Debug */,
 				2417FCC6300939F60099599A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A4E0003000000000000AAAA /* Build configuration list for PBXNativeTarget "ProjectTrackerShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A4E0004000000000000AAAA /* Debug */,
+				5A4E0005000000000000AAAA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

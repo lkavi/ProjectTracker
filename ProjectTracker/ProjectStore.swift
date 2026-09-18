@@ -120,6 +120,27 @@ enum ProjectStore {
         return "\(safe).project-tracker.json"
     }
 
+    // MARK: - Template sharing (progress stripped, fresh identity)
+
+    /// A copy for coursemates: the same stages and tasks, no progress, and a
+    /// new project id so each recipient gets their own project instead of
+    /// replacing one that happens to share the id.
+    static func templateData(_ project: Project) -> Data? {
+        var copy = Project(id: UUID(),
+                           instructions: project.instructions ?? aiInstructions,
+                           definition: project.definition,
+                           progress: ProjectProgress())
+        copy.createdAt = Date()
+        return try? encoder.encode(copy)
+    }
+
+    static func templateFilename(_ project: Project) -> String {
+        let safe = project.definition.name
+            .components(separatedBy: CharacterSet(charactersIn: "/\\:"))
+            .joined(separator: "-")
+        return "\(safe) template.project-tracker.json"
+    }
+
     // MARK: - Import (tailored JSON coming back from the AI agent)
 
     enum ImportError: Error {

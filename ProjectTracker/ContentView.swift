@@ -42,7 +42,9 @@ struct ContentView: View {
     @State private var showNewProject = false
     @State private var showSetupGuide = false
     @State private var showStageEditor = false
+    @State private var showPasteDeadlines = false
     @State private var pendingImport: ProjectStore.ImportSummary?
+    @State private var inboxItem: URL?
     @State private var showRename = false
     @State private var renameText = ""
     @State private var showDeleteConfirm = false
@@ -120,21 +122,19 @@ struct ContentView: View {
                     projectName: active?.definition.name ?? "your project",
                     onCopyPrompt: { copyPrompt() },
                     onImportClipboard: { afterDismissal { importFromClipboard() } },
+                    onPasteDeadlines: { afterDismissal { showPasteDeadlines = true } },
                     onEditStages: { afterDismissal { showStageEditor = true } }
                 )
             }
             .sheet(isPresented: $showStageEditor) {
                 if let project = active {
-                    StageEditorView(stages: project.definition.stages) { stages in
-                        mutateActive {
-                            $0.definition.stages = stages
-                            $0.progress.completedTaskIDs.formIntersection($0.allTaskIDs)
-                        }
-                        expandedStages.formUnion(stages.map(\.id))
-                    }
+                    StageEditorView(stages: project.definition.stages) { applyStages($0) }
                 }
             }
-            .sheet(item: $pendingImport) { summary in
+            .sheet(isPresented: $showPasteDeadlines) {
+                PasteDeadlinesView { applyStages($0) }
+            }
+            .sheet(item: $pendingImport, onDismiss: { finishInboxItem() }) { summary in
                 ImportPreviewView(summary: summary) { commitImport(summary.project) }
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json, .plainText]) { result in
@@ -225,6 +225,7 @@ struct ContentView: View {
             guard !hasLoaded else { return }
             hasLoaded = true
             reload()
+            checkSharedInbox()
             if UITestSupport.opensSettingsAtLaunch {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { showNotificationSettings = true }
             }
@@ -250,6 +251,7 @@ struct ContentView: View {
             CloudContainer.retryIfNeeded()
             NSUbiquitousKeyValueStore.default.synchronize()
             reload()
+            checkSharedInbox()
         }
         .onChange(of: expandedStages) { _, newValue in saveExpandedState(newValue) }
         .onChange(of: active?.definition.stages) { _, stages in
@@ -426,6 +428,9 @@ struct ContentView: View {
             Button { showStageEditor = true } label: {
                 Label("Edit Stages…", systemImage: "list.bullet")
             }
+            Button { showPasteDeadlines = true } label: {
+                Label("Paste Deadline List…", systemImage: "text.alignleft")
+            }
             Divider()
             Button { copyPrompt() } label: {
                 Label("Copy Prompt for AI", systemImage: "doc.on.doc")
@@ -435,6 +440,9 @@ struct ContentView: View {
             }
             Button { exportActive() } label: {
                 Label("Export File…", systemImage: "square.and.arrow.up")
+            }
+            Button { shareTemplate() } label: {
+                Label("Share as Template…", systemImage: "square.and.arrow.up.on.square")
             }
             Button { showImporter = true } label: {
                 Label("Import File…", systemImage: "square.and.arrow.down")
@@ -683,11 +691,49 @@ struct ContentView: View {
         showInfo("Prompt copied. Paste it into your AI assistant.")
     }
 
+    /// Replaces the active project's stages (from the editor or a pasted
+    /// list). Progress is kept for task ids that still exist.
+    private func applyStages(_ stages: [ProjectStage]) {
+        mutateActive {
+            $0.definition.stages = stages
+            $0.progress.completedTaskIDs.formIntersection($0.allTaskIDs)
+        }
+        expandedStages.formUnion(stages.map(\.id))
+    }
+
+    // MARK: - Share extension inbox
+
+    /// Shows the import preview for anything another app shared to us.
+    private func checkSharedInbox() {
+        guard pendingImport == nil, inboxItem == nil, let url = SharedInbox.pending().first else { return }
+        inboxItem = url
+        guard let data = try? Data(contentsOf: url) else { finishInboxItem(); return }
+        previewImport(data)
+        if pendingImport == nil { finishInboxItem() }   // invalid content: alert shown, drop the file
+    }
+
+    private func finishInboxItem() {
+        if let url = inboxItem { SharedInbox.remove(url) }
+        inboxItem = nil
+        // More than one item may be waiting.
+        if pendingImport == nil { DispatchQueue.main.async { checkSharedInbox() } }
+    }
+
     private func exportActive() {
         guard let project = active, let data = ProjectStore.exportData(project) else { return }
-        let filename = ProjectStore.exportFilename(project)
+        shareFile(data, named: ProjectStore.exportFilename(project), panelTitle: "Export Project")
+    }
+
+    private func shareTemplate() {
+        guard let project = active, let data = ProjectStore.templateData(project) else { return }
+        shareFile(data, named: ProjectStore.templateFilename(project), panelTitle: "Save Template")
+    }
+
+    /// Save panel on the Mac, share sheet on iOS (AirDrop, Messages, Files…).
+    private func shareFile(_ data: Data, named filename: String, panelTitle: String) {
         #if os(macOS)
         let panel = NSSavePanel()
+        panel.title = panelTitle
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = filename
         panel.begin { response in

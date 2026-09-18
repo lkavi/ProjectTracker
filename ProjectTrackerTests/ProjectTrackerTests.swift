@@ -297,3 +297,64 @@ struct ImportTests {
         #expect(ProjectStore.exportFilename(project) == "AI-ML- Thesis-Draft.project-tracker.json")
     }
 }
+
+// MARK: - Deadline list parser, template sharing, share inbox
+
+@MainActor
+struct DeadlineListParserTests {
+    @Test func tabTableBecomesChronologicalStagesWithWeights() {
+        let text = "Final report\t15 Apr 2027\t70%\nProposal\t17 Oct 2026\t10%\nLiterature review\t21 Nov 2026"
+        let r = DeadlineListParser.parse(text)
+        #expect(r.stages.map(\.title) == ["Proposal", "Literature review", "Final report"])
+        #expect(r.stages.map(\.weight) == ["10%", nil, "70%"])
+        #expect(r.stages.map(\.deadline) == ["2026-10-17", "2026-11-21", "2027-04-15"])
+        #expect(r.stages.allSatisfy { !$0.tasks.isEmpty })
+        #expect(r.skippedLines == 0)
+    }
+
+    @Test func bulletsUnderAStageBecomeItsTasks() {
+        let text = """
+        Methodology chapter – 5 December 2026
+        - Choose methods
+        - Complete the ethics form
+        Implementation due 20 January 2027
+        """
+        let r = DeadlineListParser.parse(text)
+        #expect(r.stages.count == 2)
+        #expect(r.stages[0].title == "Methodology chapter")
+        #expect(r.stages[0].tasks.map(\.title) == ["Choose methods", "Complete the ethics form"])
+        #expect(r.stages[1].title == "Implementation")
+        #expect(r.stages[1].tasks.map(\.title) == ["Finish Implementation"])
+    }
+
+    @Test func proseWithoutDatesIsSkipped() {
+        let r = DeadlineListParser.parse("Welcome to the module.\nSubmit everything on Blackboard.\nViva 3 June 2027")
+        #expect(r.stages.count == 1)
+        #expect(r.stages.first?.title == "Viva")
+        #expect(r.skippedLines == 2)
+    }
+}
+
+@MainActor
+struct SharingTests {
+    @Test func templateCopyStripsProgressAndGetsANewIdentity() throws {
+        var project = Project(definition: ProjectDefinition(name: "Thesis", stages: [
+            ProjectStage(title: "A", deadline: "2030-01-01", tasks: [ProjectTask(title: "t")])]))
+        project.setTask(project.definition.stages[0].tasks[0].id, done: true)
+        let data = try #require(ProjectStore.templateData(project))
+        let summary = try ProjectStore.importSummary(from: data)
+        #expect(summary.project.id != project.id)
+        #expect(summary.keptTicks == 0)
+        #expect(summary.replacesExisting == false)
+        #expect(summary.project.definition == project.definition)
+        #expect(ProjectStore.templateFilename(project) == "Thesis template.project-tracker.json")
+    }
+
+    // The App Group container needs a signed host; unsigned CLI test runs skip this.
+    @Test(.enabled(if: SharedInbox.isAvailable)) func sharedInboxRoundTrip() throws {
+        let url = try #require(SharedInbox.save(Data("{}".utf8)))
+        #expect(SharedInbox.pending().contains(url))
+        SharedInbox.remove(url)
+        #expect(!SharedInbox.pending().contains(url))
+    }
+}
