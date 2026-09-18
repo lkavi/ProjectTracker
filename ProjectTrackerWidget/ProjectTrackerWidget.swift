@@ -49,12 +49,12 @@ struct ProjectTrackerWidgetView: View {
 
     private var emptyBody: some View {
         VStack(spacing: 6) {
-            Image(systemName: "list.bullet.clipboard")
+            Image(systemName: "checklist")
                 .font(.title2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             Text("Open the app to set up a project")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.7))
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(12)
@@ -78,288 +78,188 @@ struct SnapshotView: View {
     }
 
     var body: some View {
-        if family == .systemLarge {
-            largeBody
-        } else if family == .systemMedium {
-            mediumBody
-        } else {
-            smallBody
-        }
-    }
-
-    // MARK: Small
-
-    @ViewBuilder
-    private var smallBody: some View {
         HStack(alignment: .top, spacing: 0) {
-            Rectangle().fill(status.color).frame(width: 4)
-            VStack(alignment: .leading, spacing: 5) {
-                Text("▶ \(snapshot.projectName.uppercased())")
-                    .font(.system(size: 9).monospaced().bold())
-                    .foregroundStyle(status.color)
-                    .lineLimit(1)
-                Text(snapshot.stageTitle)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(4)
-                Spacer(minLength: 0)
-                Text(due)
-                    .font(.system(size: 10).monospaced().bold())
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(status.color.opacity(0.22))
-                    .foregroundStyle(status.color)
-                    .clipShape(Capsule())
-            }
-            .padding(12)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    }
-
-    // MARK: Medium — left panel (info) + right panel (tasks)
-
-    @ViewBuilder
-    private var mediumBody: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Rectangle().fill(status.color).frame(width: 4)
-
-            // Left: stage info
-            VStack(alignment: .leading, spacing: 5) {
-                Text("▶ \(snapshot.projectName.uppercased())")
-                    .font(.system(size: 9).monospaced().bold())
-                    .foregroundStyle(status.color)
-                    .lineLimit(1)
-                Text(snapshot.stageTitle)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(3)
-                Spacer(minLength: 0)
-                dateLabels
-                if let weight = snapshot.weight {
-                    Text("summative · \(weight)")
-                        .font(.system(size: 9).monospaced())
-                        .foregroundStyle(.purple)
+            RoundedRectangle(cornerRadius: 2).fill(status.color).frame(width: 4)
+            Group {
+                switch family {
+                case .systemLarge:  largeBody
+                case .systemMedium: mediumBody
+                default:            smallBody
                 }
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Rectangle().fill(.white.opacity(0.08)).frame(width: 1)
-
-            // Right: task checklist
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 5) {
-                    Text("TASKS")
-                        .font(.system(size: 9).monospaced().bold())
-                        .foregroundStyle(.white.opacity(0.4))
-                    Text("\(doneCount)/\(snapshot.tasks.count)")
-                        .font(.system(size: 9).monospaced())
-                        .foregroundStyle(.white.opacity(0.4))
-                }
-                ForEach(Array(snapshot.tasks.prefix(4).enumerated()), id: \.offset) { _, task in
-                    taskRow(task: task, fontSize: 10)
-                }
-                if !snapshot.notes.isEmpty {
-                    Spacer(minLength: 2)
-                    Text(snapshot.notes)
-                        .font(.system(size: 9).italic())
-                        .foregroundStyle(.white.opacity(0.5))
-                        .lineLimit(2)
-                }
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    }
-
-    // MARK: Large — rich full layout
-
-    @ViewBuilder
-    private var largeBody: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Rectangle().fill(status.color).frame(width: 4)
-
-            VStack(alignment: .leading, spacing: 0) {
-                // ── Title + dates, grouped together at the top ──
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("▶ \(snapshot.projectName.uppercased())  ·  STAGE \(snapshot.stageNumber) OF \(snapshot.stageCount)")
-                                .font(.system(size: 9).monospaced().bold())
-                                .foregroundStyle(status.color)
-                                .lineLimit(1)
-                            Text(snapshot.stageTitle)
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(2)
-                        }
-                        Spacer(minLength: 6)
-                        if let weight = snapshot.weight {
-                            Text(weight)
-                                .font(.system(size: 10).monospaced())
-                                .padding(.horizontal, 7).padding(.vertical, 2)
-                                .background(Color.purple.opacity(0.25))
-                                .foregroundStyle(.purple)
-                                .clipShape(Capsule())
-                        }
-                    }
-
-                    // ── Dates directly under the stage ──
-                    HStack(alignment: .top, spacing: 16) {
-                        if let deadline = snapshot.deadline {
-                            dateColumn(label: "DEADLINE", date: deadline, color: status.color)
-                            if let target = targetDate {
-                                dateColumn(label: "YOUR TARGET", date: target,
-                                           color: .white.opacity(0.8),
-                                           suffix: bufferDays > 0 ? "\(bufferDays)d early" : nil)
-                            }
-                        } else {
-                            Text("no deadline")
-                                .font(.system(size: 10).monospaced())
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-                sectionDivider
-
-                // ── Task checklist ──
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text("TASKS")
-                            .font(.system(size: 9).monospaced().bold())
-                            .foregroundStyle(.white.opacity(0.4))
-                        taskDots
-                        Text("\(doneCount) / \(snapshot.tasks.count) done")
-                            .font(.system(size: 9).monospaced())
-                            .foregroundStyle(.white.opacity(0.4))
-                    }
-                    ForEach(Array(snapshot.tasks.prefix(7).enumerated()), id: \.offset) { _, task in
-                        taskRow(task: task, fontSize: 12)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-
-                sectionDivider
-
-                // ── Notes last — expands to fill whatever space is left ──
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("NOTES")
-                        .font(.system(size: 9).monospaced().bold())
-                        .foregroundStyle(.white.opacity(0.4))
-                    if snapshot.notes.isEmpty {
-                        Text("No notes yet — jot progress in the app.")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.3))
-                    } else {
-                        Text(snapshot.notes)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.75))
-                    }
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-            }
+            .padding(.leading, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    // MARK: - Shared sub-views
+    // MARK: Small
 
-    @ViewBuilder
-    private var dateLabels: some View {
-        HStack(spacing: 10) {
-            if let deadline = snapshot.deadline {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("DUE").font(.system(size: 8).monospaced()).foregroundStyle(.white.opacity(0.4))
-                    Text(shortDate(deadline)).font(.system(size: 10).monospaced().bold()).foregroundStyle(status.color)
-                }
+    private var smallBody: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            projectLabel
+            Text(snapshot.stageTitle)
+                .font(.headline)
+                .lineLimit(3)
+            Spacer(minLength: 0)
+            dueCapsule
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Medium: stage info on the left, task list on the right
+
+    private var mediumBody: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                projectLabel
+                Text(snapshot.stageTitle)
+                    .font(.headline)
+                    .lineLimit(3)
+                Spacer(minLength: 0)
+                dueCapsule
                 if let target = targetDate {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("TARGET").font(.system(size: 8).monospaced()).foregroundStyle(.white.opacity(0.4))
-                        Text(shortDate(target)).font(.system(size: 10).monospaced()).foregroundStyle(.white.opacity(0.75))
-                    }
+                    Text("Target \(shortDate(target))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-            } else {
-                Text("no deadline")
-                    .font(.system(size: 9).monospaced())
-                    .foregroundStyle(.white.opacity(0.5))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Tasks · \(doneCount)/\(snapshot.tasks.count)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(Array(snapshot.tasks.prefix(4).enumerated()), id: \.offset) { _, task in
+                    taskRow(task: task, font: .caption2)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    @ViewBuilder
+    // MARK: Large
+
+    private var largeBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(snapshot.projectName) · Stage \(snapshot.stageNumber) of \(snapshot.stageCount)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(snapshot.stageTitle)
+                        .font(.title3.bold())
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 6)
+                if let weight = snapshot.weight {
+                    Text(weight)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(Capsule())
+                }
+            }
+
+            HStack(alignment: .top, spacing: 16) {
+                if let deadline = snapshot.deadline {
+                    dateColumn(label: "Deadline", date: deadline, color: status.color)
+                    if let target = targetDate {
+                        dateColumn(label: "Your target", date: target, color: .primary,
+                                   suffix: bufferDays > 0 ? "\(bufferDays)d early" : nil)
+                    }
+                } else {
+                    Text("No deadline")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Tasks · \(doneCount) of \(snapshot.tasks.count) done")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(Array(snapshot.tasks.prefix(7).enumerated()), id: \.offset) { _, task in
+                    taskRow(task: task, font: .caption)
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Notes")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(snapshot.notes.isEmpty ? "No notes yet." : snapshot.notes)
+                    .font(.caption)
+                    .foregroundStyle(snapshot.notes.isEmpty ? .tertiary : .primary)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    // MARK: - Pieces
+
+    private var projectLabel: some View {
+        Text(snapshot.projectName)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+    }
+
+    private var dueCapsule: some View {
+        Text(due)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(status == .queued ? Color.primary.opacity(0.06) : status.color.opacity(0.15))
+            .foregroundStyle(status == .queued ? AnyShapeStyle(.secondary) : AnyShapeStyle(status.color))
+            .clipShape(Capsule())
+    }
+
     private func dateColumn(label: String, date: Date, color: Color, suffix: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 8).monospaced())
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(longDate(date))
-                    .font(.system(size: 12, weight: .semibold).monospaced())
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(color)
                 if let s = suffix {
                     Text(s)
-                        .font(.system(size: 9).monospaced())
-                        .foregroundStyle(.white.opacity(0.35))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
     }
 
-    @ViewBuilder
-    private func taskRow(task: WidgetSnapshot.TaskItem, fontSize: CGFloat) -> some View {
+    private func taskRow(task: WidgetSnapshot.TaskItem, font: Font) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            Image(systemName: task.done ? "checkmark.square.fill" : "square")
-                .font(.system(size: fontSize - 1))
-                .foregroundStyle(task.done ? .green : .white.opacity(0.4))
+            Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
+                .font(font)
+                .foregroundStyle(task.done ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
             Text(task.title)
-                .font(.system(size: fontSize))
-                .foregroundStyle(task.done ? .white.opacity(0.3) : .white.opacity(0.9))
-                .strikethrough(task.done, color: .white.opacity(0.3))
-                .lineLimit(fontSize > 10 ? 2 : 1)
+                .font(font)
+                .foregroundStyle(task.done ? .secondary : .primary)
+                .strikethrough(task.done)
+                .lineLimit(2)
         }
-    }
-
-    @ViewBuilder
-    private var taskDots: some View {
-        HStack(spacing: 3) {
-            ForEach(Array(snapshot.tasks.prefix(12).enumerated()), id: \.offset) { _, task in
-                Circle()
-                    .fill(task.done ? Color.green : Color.white.opacity(0.2))
-                    .frame(width: 6, height: 6)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var sectionDivider: some View {
-        Rectangle()
-            .fill(status.color.opacity(0.18))
-            .frame(height: 1)
-            .padding(.horizontal, 4)
     }
 
     // MARK: - Formatting
 
     private func shortDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f.string(from: date)
+        date.formatted(.dateTime.day().month(.abbreviated))
     }
 
     private func longDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d, yyyy"
-        return f.string(from: date)
+        date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
@@ -372,21 +272,11 @@ struct ProjectTrackerWidget: Widget {
         AppIntentConfiguration(kind: kind,
                                intent: SelectProjectIntent.self,
                                provider: Provider()) { entry in
-            let status = StageStatus.compute(
-                done: entry.snapshot?.isDone ?? false,
-                deadline: entry.snapshot?.deadline,
-                daysEarly: entry.bufferDays
-            )
             ProjectTrackerWidgetView(entry: entry)
-                .containerBackground(for: .widget) {
-                    ZStack {
-                        Color(red: 0.10, green: 0.11, blue: 0.14)
-                        status.color.opacity(0.14)
-                    }
-                }
+                .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Project Tracker")
-        .description("Shows your next stage with checklist, deadlines and notes. Long-press to pick a project.")
+        .description("Your next stage with its checklist, deadline and notes. Long-press to pick a project.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

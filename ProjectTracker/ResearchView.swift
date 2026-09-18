@@ -20,36 +20,33 @@ struct ResearchView: View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("REFERENCE LIBRARY")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                    Text("\(items.count) item\(items.count == 1 ? "" : "s")")
+                    Text("Library")
                         .font(.largeTitle.bold())
-                        .foregroundStyle(.primary)
+                    Text("\(items.count) reference\(items.count == 1 ? "" : "s")")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button { showingAdd = true } label: {
-                    Label("Add Item", systemImage: "plus")
+                    Label("Add", systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .accessibilityIdentifier("add-reference-menu-button")
             }
-            .padding(26)
-            .background(Color.appControlBackground)
+            .padding(contentPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            Divider()
 
             if items.isEmpty {
                 emptyState
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 14) {
+                    LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach($items) { $item in
                             ResearchItemCard(item: $item) { deleteItem(item) }
                         }
                     }
-                    .padding(26)
+                    .padding(.horizontal, contentPadding)
+                    .padding(.bottom, contentPadding)
                 }
             }
         }
@@ -109,10 +106,18 @@ struct ResearchView: View {
         ResearchStore.save(items)
     }
 
+    private var contentPadding: CGFloat {
+        #if os(macOS)
+        return 26
+        #else
+        return 16
+        #endif
+    }
+
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "books.vertical")
-                .font(.system(size: 52))
+            Image(systemName: "book.closed")
+                .font(.system(size: 44))
                 .foregroundStyle(.tertiary)
             Text("No references yet")
                 .font(.title3.bold())
@@ -151,7 +156,7 @@ struct ResearchItemCard: View {
                         .font(.title3.bold())
                         .textFieldStyle(.plain)
                     Text("Added \(item.addedAt.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.caption.monospaced())
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
@@ -163,11 +168,11 @@ struct ResearchItemCard: View {
 
             // Link row
             HStack(spacing: 8) {
-                Image(systemName: "link").foregroundStyle(.blue).font(.callout).frame(width: 18)
+                Image(systemName: "link").foregroundStyle(.secondary).font(.callout).frame(width: 18)
                 TextField("https://…", text: $item.link)
                     .textFieldStyle(.plain)
-                    .font(.callout.monospaced())
-                    .foregroundStyle(.blue)
+                    .font(.callout)
+                    .foregroundStyle(Color.accentColor)
                 if !item.link.isEmpty, let url = URL(string: item.link) {
                     Button("Open") { openURL(url) }
                         .buttonStyle(.borderless)
@@ -176,14 +181,14 @@ struct ResearchItemCard: View {
                 }
             }
             .padding(10)
-            .background(Color.blue.opacity(0.07))
+            .background(Color.primary.opacity(0.04))
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // PDF row
             if let fn = item.filename {
                 let pdfURL = ResearchStore.fileURL(filename: fn)
                 HStack(spacing: 8) {
-                    Image(systemName: "doc.fill").foregroundStyle(.red).font(.callout)
+                    Image(systemName: "doc.text").foregroundStyle(.secondary).font(.callout)
                     Text(item.fileDisplayName ?? "PDF")
                         .font(.callout).lineLimit(1)
                     Spacer()
@@ -199,7 +204,7 @@ struct ResearchItemCard: View {
                     .font(.caption)
                 }
                 .padding(10)
-                .background(Color.red.opacity(0.07))
+                .background(Color.primary.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 Button { showFilePicker = true } label: {
@@ -290,7 +295,7 @@ struct AddResearchItemSheet: View {
                     Text("PDF").foregroundStyle(.secondary)
                     HStack {
                         if !pendingDisplayName.isEmpty {
-                            Image(systemName: "doc.fill").foregroundStyle(.red)
+                            Image(systemName: "doc.text").foregroundStyle(.secondary)
                             Text(pendingDisplayName).font(.callout).lineLimit(1)
                             Spacer()
                             Button("Remove") {

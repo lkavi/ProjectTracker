@@ -1,202 +1,147 @@
 #!/usr/bin/swift
-
+// Renders the app icon set.
+//   swift Tools/generate_icon.swift <output-dir> [milestones|steps]
+// Writes ios-1024.png (full-bleed, iOS masks it) and the macOS set with the
+// rounded-square shape and transparent margin baked in, plus preview-*.png.
 import AppKit
-import CoreGraphics
 
-func drawIcon(size: CGFloat) -> NSImage {
-    let image = NSImage(size: NSSize(width: size, height: size))
-    image.lockFocus()
+enum Style: String { case milestones, steps }
 
-    guard let ctx = NSGraphicsContext.current?.cgContext else {
-        image.unlockFocus()
-        return image
+struct Palette { let top: CGColor; let bottom: CGColor; let accent: CGColor }
+
+func rgb(_ r: Int, _ g: Int, _ b: Int, _ a: CGFloat = 1) -> CGColor {
+    CGColor(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: a)
+}
+
+func palette(_ style: Style) -> Palette {
+    switch style {
+    case .milestones: return Palette(top: rgb(76, 111, 255), bottom: rgb(43, 63, 203), accent: rgb(255, 194, 75))
+    case .steps:      return Palette(top: rgb(20, 184, 166), bottom: rgb(15, 118, 110), accent: rgb(255, 255, 255))
+    }
+}
+
+func circle(_ x: CGFloat, _ y: CGFloat, _ r: CGFloat) -> CGRect {
+    CGRect(x: x - r, y: y - r, width: 2 * r, height: 2 * r)
+}
+
+/// Vertical timeline: a finished node with a check, the current node with an
+/// accent dot, an upcoming hollow node, and a short label bar beside each.
+func drawMilestones(_ ctx: CGContext, in r: CGRect, _ p: Palette) {
+    let s = r.width
+    let x = r.minX + s * 0.34
+    let ys = [r.minY + s * 0.735, r.minY + s * 0.50, r.minY + s * 0.265]   // top, middle, bottom
+    let nodeR = s * 0.082
+    let lw = s * 0.034
+    let white = CGColor(gray: 1, alpha: 1)
+
+    ctx.setLineCap(.round); ctx.setLineJoin(.round)
+
+    // connector
+    ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.45)); ctx.setLineWidth(lw)
+    ctx.move(to: CGPoint(x: x, y: ys[0])); ctx.addLine(to: CGPoint(x: x, y: ys[2])); ctx.strokePath()
+
+    // label bars
+    let barX = x + nodeR + s * 0.09
+    let barH = s * 0.052
+    let widths: [CGFloat] = [s * 0.30, s * 0.36, s * 0.24]
+    let alphas: [CGFloat] = [0.45, 0.95, 0.55]
+    for i in 0..<3 {
+        ctx.setFillColor(CGColor(gray: 1, alpha: alphas[i]))
+        let bar = CGRect(x: barX, y: ys[i] - barH / 2, width: widths[i], height: barH)
+        ctx.addPath(CGPath(roundedRect: bar, cornerWidth: barH / 2, cornerHeight: barH / 2, transform: nil))
+        ctx.fillPath()
     }
 
-    let s = size
-
-    // ── Background gradient (dark slate)
-    let bgColors = [
-        CGColor(red: 0.09, green: 0.10, blue: 0.13, alpha: 1),
-        CGColor(red: 0.14, green: 0.16, blue: 0.21, alpha: 1)
-    ] as CFArray
-    let bgGrad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: bgColors, locations: [0, 1])!
-    ctx.drawLinearGradient(bgGrad, start: CGPoint(x: 0, y: s), end: CGPoint(x: s, y: 0), options: [])
-
-    // ── Subtle inner glow ring
-    let glowColors = [
-        CGColor(red: 0.18, green: 0.72, blue: 0.45, alpha: 0.10),
-        CGColor(red: 0.18, green: 0.72, blue: 0.45, alpha: 0.0)
-    ] as CFArray
-    let glowGrad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: glowColors, locations: [0, 1])!
-    ctx.drawRadialGradient(glowGrad,
-        startCenter: CGPoint(x: s * 0.5, y: s * 0.55), startRadius: 0,
-        endCenter: CGPoint(x: s * 0.5, y: s * 0.55), endRadius: s * 0.5,
-        options: [])
-
-    // ── Graduation cap — board (diamond)
-    let cx = s * 0.5
-    let cy = s * 0.54
-
-    // Diamond board
-    let hw = s * 0.34   // half-width
-    let hh = s * 0.13   // half-height
-
-    let boardPath = CGMutablePath()
-    boardPath.move(to: CGPoint(x: cx,      y: cy + hh))
-    boardPath.addLine(to: CGPoint(x: cx + hw, y: cy))
-    boardPath.addLine(to: CGPoint(x: cx,      y: cy - hh))
-    boardPath.addLine(to: CGPoint(x: cx - hw, y: cy))
-    boardPath.closeSubpath()
-
-    // Board fill: green gradient
-    let boardColors = [
-        CGColor(red: 0.22, green: 0.85, blue: 0.52, alpha: 1),
-        CGColor(red: 0.08, green: 0.58, blue: 0.36, alpha: 1)
-    ] as CFArray
-    let boardGrad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: boardColors, locations: [0, 1])!
-    ctx.saveGState()
-    ctx.addPath(boardPath)
-    ctx.clip()
-    ctx.drawLinearGradient(boardGrad,
-        start: CGPoint(x: cx - hw, y: cy + hh),
-        end: CGPoint(x: cx + hw, y: cy - hh), options: [])
-    ctx.restoreGState()
-
-    // Board edge highlight (top face lighter)
-    let topFace = CGMutablePath()
-    topFace.move(to: CGPoint(x: cx,      y: cy + hh))
-    topFace.addLine(to: CGPoint(x: cx + hw, y: cy))
-    topFace.addLine(to: CGPoint(x: cx,      y: cy + hh * 0.35))
-    topFace.addLine(to: CGPoint(x: cx - hw, y: cy))
-    topFace.closeSubpath()
-    ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.18))
-    ctx.addPath(topFace)
-    ctx.fillPath()
-
-    // ── Cap dome / cylinder below board
-    let domeW = s * 0.28
-    let domeH = s * 0.17
-    let domeX = cx - domeW / 2
-    let domeY = cy - hh - domeH * 0.85
-
-    let domeRect = CGRect(x: domeX, y: domeY, width: domeW, height: domeH)
-    let domeColors = [
-        CGColor(red: 0.12, green: 0.62, blue: 0.40, alpha: 1),
-        CGColor(red: 0.06, green: 0.40, blue: 0.26, alpha: 1)
-    ] as CFArray
-    let domeGrad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: domeColors, locations: [0, 1])!
-
-    // Trapezoid dome
-    let domePath = CGMutablePath()
-    domePath.move(to: CGPoint(x: cx - domeW * 0.42, y: domeY + domeH))
-    domePath.addLine(to: CGPoint(x: cx + domeW * 0.42, y: domeY + domeH))
-    domePath.addLine(to: CGPoint(x: cx + domeW * 0.5,  y: domeY))
-    domePath.addLine(to: CGPoint(x: cx - domeW * 0.5,  y: domeY))
-    domePath.closeSubpath()
-    ctx.saveGState()
-    ctx.addPath(domePath)
-    ctx.clip()
-    ctx.drawLinearGradient(domeGrad,
-        start: CGPoint(x: 0, y: domeY + domeH),
-        end: CGPoint(x: 0, y: domeY), options: [])
-    ctx.restoreGState()
-
-    // ── Tassel string (right side)
-    let tasselX = cx + hw
-    let tasselTopY = cy
-    let tasselBottomY = cy - hh * 2.6
-    ctx.setStrokeColor(CGColor(red: 0.22, green: 0.85, blue: 0.52, alpha: 0.85))
-    ctx.setLineWidth(s * 0.018)
-    ctx.setLineCap(.round)
-    ctx.move(to: CGPoint(x: tasselX, y: tasselTopY))
-    ctx.addLine(to: CGPoint(x: tasselX + s * 0.04, y: tasselBottomY + s * 0.04))
+    // done: filled disc with a check in the background colour
+    ctx.setFillColor(white); ctx.fillEllipse(in: circle(x, ys[0], nodeR))
+    ctx.setStrokeColor(p.bottom); ctx.setLineWidth(lw * 0.95)
+    ctx.move(to: CGPoint(x: x - nodeR * 0.48, y: ys[0] + nodeR * 0.02))
+    ctx.addLine(to: CGPoint(x: x - nodeR * 0.10, y: ys[0] - nodeR * 0.36))
+    ctx.addLine(to: CGPoint(x: x + nodeR * 0.52, y: ys[0] + nodeR * 0.40))
     ctx.strokePath()
-    // Tassel ball
-    ctx.setFillColor(CGColor(red: 0.22, green: 0.85, blue: 0.52, alpha: 1))
-    let tasselR = s * 0.03
-    ctx.fillEllipse(in: CGRect(x: tasselX + s * 0.04 - tasselR,
-                               y: tasselBottomY,
-                               width: tasselR * 2, height: tasselR * 2))
 
-    // ── Progress bar at bottom (3 segments with fill)
-    let barY = s * 0.17
-    let barH = s * 0.058
-    let barW = s * 0.68
-    let barX = (s - barW) / 2
-    let corner = barH / 2
+    // current: ring with an accent dot
+    ctx.setStrokeColor(white); ctx.setLineWidth(lw)
+    ctx.strokeEllipse(in: circle(x, ys[1], nodeR - lw / 2))
+    ctx.setFillColor(p.accent); ctx.fillEllipse(in: circle(x, ys[1], nodeR * 0.42))
 
-    // Track
-    let trackPath = CGPath(roundedRect: CGRect(x: barX, y: barY, width: barW, height: barH),
-                            cornerWidth: corner, cornerHeight: corner, transform: nil)
-    ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.08))
-    ctx.addPath(trackPath)
-    ctx.fillPath()
+    // upcoming: hollow ring
+    ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.85)); ctx.setLineWidth(lw)
+    ctx.strokeEllipse(in: circle(x, ys[2], nodeR - lw / 2))
+}
 
-    // Fill ~72%
-    let fillFrac: CGFloat = 0.72
-    let fillW = barW * fillFrac
-    let fillColors = [
-        CGColor(red: 0.22, green: 0.85, blue: 0.52, alpha: 1),
-        CGColor(red: 0.10, green: 0.65, blue: 0.80, alpha: 1)
-    ] as CFArray
-    let fillGrad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: fillColors, locations: [0, 1])!
-    let fillPath = CGPath(roundedRect: CGRect(x: barX, y: barY, width: fillW, height: barH),
-                           cornerWidth: corner, cornerHeight: corner, transform: nil)
+/// Three ascending steps with a check on the top one.
+func drawSteps(_ ctx: CGContext, in r: CGRect, _ p: Palette) {
+    let s = r.width
+    let w = s * 0.20, gap = s * 0.035, base = r.minY + s * 0.24
+    let heights: [CGFloat] = [s * 0.16, s * 0.30, s * 0.46]
+    let x0 = r.minX + (s - (3 * w + 2 * gap)) / 2
+    let corner = s * 0.035
+    for i in 0..<3 {
+        let rect = CGRect(x: x0 + CGFloat(i) * (w + gap), y: base, width: w, height: heights[i])
+        ctx.setFillColor(CGColor(gray: 1, alpha: i == 2 ? 1.0 : 0.55 + 0.15 * CGFloat(i)))
+        ctx.addPath(CGPath(roundedRect: rect, cornerWidth: corner, cornerHeight: corner, transform: nil))
+        ctx.fillPath()
+    }
+    // check on the top step
+    let cx = x0 + 2 * (w + gap) + w / 2, cy = base + heights[2] - s * 0.10
+    ctx.setStrokeColor(p.bottom); ctx.setLineWidth(s * 0.032); ctx.setLineCap(.round); ctx.setLineJoin(.round)
+    ctx.move(to: CGPoint(x: cx - s * 0.055, y: cy))
+    ctx.addLine(to: CGPoint(x: cx - s * 0.012, y: cy - s * 0.045))
+    ctx.addLine(to: CGPoint(x: cx + s * 0.06, y: cy + s * 0.05))
+    ctx.strokePath()
+}
+
+func render(pixels: Int, mac: Bool, style: Style) -> Data {
+    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8,
+                               samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                               bytesPerRow: 0, bitsPerPixel: 0)!
+    NSGraphicsContext.saveGraphicsState()
+    let gctx = NSGraphicsContext(bitmapImageRep: rep)!
+    NSGraphicsContext.current = gctx
+    let ctx = gctx.cgContext
+    let size = CGFloat(pixels)
+    let full = CGRect(x: 0, y: 0, width: size, height: size)
+    let shape = mac ? full.insetBy(dx: size * 0.098, dy: size * 0.098) : full
+    let radius = mac ? shape.width * 0.225 : 0
+    let path = CGPath(roundedRect: shape, cornerWidth: radius, cornerHeight: radius, transform: nil)
+    let p = palette(style)
+
     ctx.saveGState()
-    ctx.addPath(fillPath)
-    ctx.clip()
-    ctx.drawLinearGradient(fillGrad,
-        start: CGPoint(x: barX, y: 0), end: CGPoint(x: barX + fillW, y: 0), options: [])
+    ctx.addPath(path); ctx.clip()
+    let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                              colors: [p.top, p.bottom] as CFArray, locations: [0, 1])!
+    ctx.drawLinearGradient(gradient, start: CGPoint(x: shape.midX, y: shape.maxY),
+                           end: CGPoint(x: shape.midX, y: shape.minY), options: [])
+    switch style {
+    case .milestones: drawMilestones(ctx, in: shape, p)
+    case .steps:      drawSteps(ctx, in: shape, p)
+    }
     ctx.restoreGState()
 
-    // ── Tick marks / stage dividers on bar
-    let stages = 7
-    for i in 1..<stages {
-        let tx = barX + barW * CGFloat(i) / CGFloat(stages)
-        ctx.setStrokeColor(CGColor(red: 0, green: 0, blue: 0, alpha: 0.22))
-        ctx.setLineWidth(s * 0.008)
-        ctx.move(to: CGPoint(x: tx, y: barY))
-        ctx.addLine(to: CGPoint(x: tx, y: barY + barH))
+    if mac {   // faint edge so the shape reads on light and dark docks
+        ctx.addPath(path)
+        ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.10))
+        ctx.setLineWidth(max(1, size * 0.004))
         ctx.strokePath()
     }
-
-    image.unlockFocus()
-    return image
+    NSGraphicsContext.restoreGraphicsState()
+    return rep.representation(using: .png, properties: [:])!
 }
 
-let outputDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
+let args = CommandLine.arguments
+let outDir = URL(fileURLWithPath: args.count > 1 ? args[1] : ".")
+let style = Style(rawValue: args.count > 2 ? args[2] : "milestones") ?? .milestones
+try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
-struct IconSpec {
-    let name: String
-    let size: Int
+func write(_ name: String, _ data: Data) {
+    try! data.write(to: outDir.appendingPathComponent(name))
+    print("✓ \(name)")
 }
 
-let specs: [IconSpec] = [
-    IconSpec(name: "icon_16x16",      size: 16),
-    IconSpec(name: "icon_16x16@2x",   size: 32),
-    IconSpec(name: "icon_32x32",      size: 32),
-    IconSpec(name: "icon_32x32@2x",   size: 64),
-    IconSpec(name: "icon_128x128",    size: 128),
-    IconSpec(name: "icon_128x128@2x", size: 256),
-    IconSpec(name: "icon_256x256",    size: 256),
-    IconSpec(name: "icon_256x256@2x", size: 512),
-    IconSpec(name: "icon_512x512",    size: 512),
-    IconSpec(name: "icon_512x512@2x", size: 1024),
-]
-
-for spec in specs {
-    let img = drawIcon(size: CGFloat(spec.size))
-    guard let tiff = img.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: tiff),
-          let png = bitmap.representation(using: .png, properties: [:]) else {
-        print("ERROR: could not render \(spec.name)")
-        continue
-    }
-    let url = URL(fileURLWithPath: outputDir).appendingPathComponent("\(spec.name).png")
-    do {
-        try png.write(to: url)
-        print("✓ \(spec.name).png  (\(spec.size)x\(spec.size))")
-    } catch {
-        print("ERROR writing \(spec.name): \(error)")
-    }
-}
+write("ios-1024.png", render(pixels: 1024, mac: false, style: style))
+let macSlots: [(String, Int)] = [("mac-16", 16), ("mac-16@2x", 32), ("mac-32", 32), ("mac-32@2x", 64),
+                                 ("mac-128", 128), ("mac-128@2x", 256), ("mac-256", 256), ("mac-256@2x", 512),
+                                 ("mac-512", 512), ("mac-512@2x", 1024)]
+for (name, px) in macSlots { write("\(name).png", render(pixels: px, mac: true, style: style)) }
+write("preview-\(style.rawValue).png", render(pixels: 512, mac: true, style: style))

@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// One collapsible stage card: number, title, status line, and when expanded
+/// the deadline, task checklist and notes.
 struct StageRowView: View {
     let stage: ProjectStage
     let number: Int
@@ -8,150 +10,75 @@ struct StageRowView: View {
     let onToggle: (UUID, Bool) -> Void
     let bufferDays: Int
     @Binding var isExpanded: Bool
+    var onEdit: (() -> Void)? = nil
 
     private var status: StageStatus { stage.status(done: isDone, daysEarly: bufferDays) }
 
     var body: some View {
-        Group {
-            #if os(iOS)
-            iosBody
-            #else
-            macBody
-            #endif
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\(number)")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(status == .queued ? AnyShapeStyle(.secondary) : AnyShapeStyle(status.color))
+                        .frame(width: 22, alignment: .trailing)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(stage.title)
+                            .font(.headline)
+                            .multilineTextAlignment(.leading)
+                        HStack(spacing: 6) {
+                            StatusBadge(status: status)
+                            Text("· \(stage.dueText())")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let weight = stage.weight {
+                                Text("· \(weight)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                expandedContent
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
+        .padding(14)
+        .padding(.leading, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.appControlBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(alignment: .leading) { Rectangle().fill(status.color).frame(width: 3) }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contextMenu {
+            if let onEdit {
+                Button { onEdit() } label: { Label("Edit Stages…", systemImage: "list.bullet") }
+            }
+        }
         .animation(.easeInOut(duration: 0.15), value: isExpanded)
     }
 
-    // MARK: - iOS: slim colour bar + inline number, content flush left
-
-    #if os(iOS)
-    private var iosBody: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Rectangle().fill(status.color).frame(width: 3)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Button {
-                    isExpanded.toggle()
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(String(format: "%02d", number))
-                            .font(.system(.footnote, design: .monospaced).weight(.bold))
-                            .foregroundStyle(status.color)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(stage.title)
-                                .font(.subheadline.bold())
-                                .foregroundStyle(.primary)
-                                .multilineTextAlignment(.leading)
-                            HStack(spacing: 5) {
-                                Text(status.rawValue)
-                                    .font(.appLabelBold)
-                                    .foregroundStyle(status.color)
-                                Text("· \(stage.dueText())")
-                                    .font(.appMeta)
-                                    .foregroundStyle(.secondary)
-                                if let weight = stage.weight {
-                                    Text("· \(weight)")
-                                        .font(.appMeta)
-                                        .foregroundStyle(.purple)
-                                }
-                            }
-                        }
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                if isExpanded {
-                    expandedContent
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .padding(10)
-        }
-    }
-    #endif
-
-    // MARK: - macOS: numbered gutter design
-
-    #if os(macOS)
-    private var macBody: some View {
-        HStack(alignment: .top, spacing: 0) {
-            VStack {
-                Text(String(format: "%02d", number))
-                    .font(.system(size: 24, weight: .bold, design: .monospaced))
-                    .foregroundStyle(status.color)
-            }
-            .frame(width: 56)
-            .padding(.vertical, 14)
-            .background(status.color.opacity(0.08))
-
-            VStack(alignment: .leading, spacing: 8) {
-                Button {
-                    isExpanded.toggle()
-                } label: {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(stage.title)
-                                .font(.title3.bold())
-                                .foregroundStyle(.primary)
-                            if let weight = stage.weight {
-                                Text("summative · \(weight)")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.purple)
-                            } else {
-                                Text("formative")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 3) {
-                            Text(status.rawValue)
-                                .font(.caption.monospaced().bold())
-                                .foregroundStyle(status.color)
-                            Text(stage.dueText())
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                        }
-                        Image(systemName: "chevron.right")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .padding(.leading, 4)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                if isExpanded {
-                    expandedContent
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    #endif
-
-    // MARK: - Shared expanded content
+    // MARK: - Expanded content
 
     private var expandedContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if let deadline = stage.deadlineDate {
                 let target = stage.targetDate(daysEarly: bufferDays) ?? deadline
-                Text("deadline: \(formatted(deadline))   ·   your target: \(formatted(target))")
-                    .font(.appMeta)
+                Text("Deadline \(formatted(deadline))  ·  Your target \(formatted(target))")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 34)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -162,26 +89,22 @@ struct StageRowView: View {
                         set: { onToggle(task.id, $0) }
                     )) {
                         Text(task.title)
-                            #if os(iOS)
                             .font(.subheadline)
-                            #else
-                            .font(.body)
-                            #endif
                             .strikethrough(done)
                             .foregroundStyle(done ? .secondary : .primary)
                     }
                     .checkboxToggleStyle()
                 }
             }
+            .padding(.leading, 34)
             .padding(.top, 2)
 
             StageNotesView(stageKey: stage.id.uuidString)
+                .padding(.leading, 34)
         }
     }
 
     private func formatted(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f.string(from: date)
+        date.formatted(date: .abbreviated, time: .omitted)
     }
 }

@@ -6,14 +6,25 @@ import SwiftUI
 enum StageStatus: String {
     case passed, running, blocked, queued
 
+    /// Wording shown in the UI. The case names stay as they are because
+    /// they're part of the stored format and the tests.
+    var label: String {
+        switch self {
+        case .passed:  return "Done"
+        case .running: return "In progress"
+        case .blocked: return "Overdue"
+        case .queued:  return "Upcoming"
+        }
+    }
+
     /// Single source of truth for status colors — used by both the app
     /// window and the widget, so they can't visually drift apart.
     var color: Color {
         switch self {
         case .passed:  return .green
-        case .running: return .yellow
+        case .running: return .orange
         case .blocked: return .red
-        case .queued:  return .blue
+        case .queued:  return .secondary
         }
     }
 
@@ -30,16 +41,20 @@ enum StageStatus: String {
     }
 }
 
-/// "due in 12d" / "due today" / "overdue 3d" / "no deadline".
+/// "Due in 12 days" / "Due tomorrow" / "Due today" / "Overdue by 3 days" / "No deadline".
 func dueText(for deadline: Date?, from today: Date = Date()) -> String {
-    guard let deadline else { return "no deadline" }
+    guard let deadline else { return "No deadline" }
     let cal = Calendar.current
     let diff = cal.dateComponents([.day],
                                   from: cal.startOfDay(for: today),
                                   to: cal.startOfDay(for: deadline)).day ?? 0
-    if diff < 0 { return "overdue \(abs(diff))d" }
-    if diff == 0 { return "due today" }
-    return "due in \(diff)d"
+    switch diff {
+    case ..<(-1): return "Overdue by \(-diff) days"
+    case -1:      return "Overdue by 1 day"
+    case 0:       return "Due today"
+    case 1:       return "Due tomorrow"
+    default:      return "Due in \(diff) days"
+    }
 }
 
 // MARK: - Project model

@@ -37,12 +37,12 @@ struct NotificationSettingsView: View {
                 VStack(alignment: .leading, spacing: 20) {
 
                     // ── General ──────────────────────────────────────────
-                    sectionHeader("GENERAL")
+                    sectionHeader("General")
 
                     targetCard
 
                     // ── Notifications ─────────────────────────────────────
-                    sectionHeader("DAILY REMINDERS")
+                    sectionHeader("Daily reminders")
 
                     if authStatus == .denied {
                         permissionDeniedBanner
@@ -59,7 +59,7 @@ struct NotificationSettingsView: View {
                     }
 
                     // ── iCloud ───────────────────────────────────────────
-                    sectionHeader("ICLOUD SYNC")
+                    sectionHeader("iCloud sync")
                     iCloudStatusCard
                 }
                 .padding(20)
@@ -210,7 +210,7 @@ struct NotificationSettingsView: View {
     @ViewBuilder
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.caption.monospaced())
+            .font(.footnote.weight(.semibold))
             .foregroundStyle(.secondary)
     }
 
@@ -292,15 +292,15 @@ struct StageNotifRowView: View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(isOn: $pref.isEnabled) {
                 HStack(spacing: 8) {
-                    Text("Stage \(number)")
-                        .font(.caption.monospaced())
+                    Text("\(number)")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .frame(width: 52, alignment: .leading)
+                        .frame(width: 22, alignment: .trailing)
                     Text(stage.title)
                         .font(.callout.bold())
                     Spacer()
                     Text(stage.dueText())
-                        .font(.caption2.monospaced())
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }

@@ -59,71 +59,50 @@ enum ProjectStore {
         if activeProjectID == project.id { activeProjectID = nil }
     }
 
-    /// New project from the built-in generic template, with fresh UUIDs and
-    /// deadlines spread into the future from today. Meant as a neutral
-    /// starting point the user then tailors with an AI agent.
-    static func create(named name: String) -> Project {
+    /// New project from a template, with stage deadlines spread between the
+    /// start date and the final deadline. A neutral starting point the user
+    /// then edits by hand or tailors with an AI assistant.
+    static func create(named name: String,
+                       template: ProjectTemplate = .default,
+                       start: Date = Date(),
+                       end: Date = Calendar.current.date(byAdding: .day, value: 30 * 7, to: Date()) ?? Date()) -> Project {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         let project = Project(
             instructions: aiInstructions,
             definition: ProjectDefinition(
                 name: trimmed.isEmpty ? "Untitled project" : trimmed,
                 topic: nil,
-                stages: genericTemplateStages()
+                stages: template.makeStages(start: start, end: end)
             )
         )
         save(project)
         return project
     }
 
-    /// Six generic project stages with deadlines placed weeks ahead of
-    /// today, so a brand-new project always opens with sensible future dates
-    /// instead of hardcoded ones.
-    private static func genericTemplateStages() -> [ProjectStage] {
-        let today = Date()
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        func deadline(weeksAhead weeks: Int) -> String {
-            let date = Calendar.current.date(byAdding: .day, value: weeks * 7, to: today) ?? today
-            return f.string(from: date)
-        }
-        func stage(_ title: String, _ weeks: Int, _ tasks: [String]) -> ProjectStage {
-            ProjectStage(title: title, weight: nil, deadline: deadline(weeksAhead: weeks),
-                         tasks: tasks.map { ProjectTask(title: $0) })
-        }
-        return [
-            stage("Proposal & Scope", 3, [
-                "Define your topic, problem statement, and objectives",
-                "Agree scope and success criteria with your supervisor",
-                "Write and submit the proposal",
-            ]),
-            stage("Literature Review", 8, [
-                "Collect and read the key papers in your area",
-                "Summarise findings in a review matrix",
-                "Identify and articulate your research gap",
-            ]),
-            stage("Methodology & Design", 13, [
-                "Choose your approach, methods, and tools",
-                "Define how you will evaluate results",
-                "Draft the methodology / design document",
-            ]),
-            stage("Implementation / Data Collection", 19, [
-                "Build the core of your project or gather your data",
-                "Keep notes on key decisions and issues",
-                "Check in with your supervisor on progress",
-            ]),
-            stage("Evaluation & Analysis", 25, [
-                "Run your evaluation with proper metrics",
-                "Compare against a baseline where possible",
-                "Write up results honestly, including limitations",
-            ]),
-            stage("Final Submission", 30, [
-                "Assemble everything into the full document",
-                "Proofread, format, and check references",
-                "Back up in two places, then submit",
-            ]),
-        ]
+    // MARK: - Prompt for an AI assistant (goes to the clipboard)
+
+    /// A complete, paste-ready prompt: the rules, a place for the user to
+    /// describe their situation, and the project file. If it is pasted with
+    /// the description still empty, the assistant is told to ask first.
+    static func aiPrompt(for project: Project) -> String {
+        let json = exportData(project).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        return """
+        I use the Project Tracker app to track a staged project with deadlines. \
+        Below are the rules, my situation, and my current project file (JSON). \
+        Tailor the project file to my situation and return the complete updated \
+        JSON and nothing else, so I can paste it straight back into the app.
+
+        MY SITUATION
+        (Describe the project in a sentence, then list your real stages, \
+        milestones or submission steps with their deadlines and any weightings. \
+        If this section is still empty, ask me for these details before writing \
+        the JSON.)
+
+        \(aiRules)
+
+        PROJECT FILE
+        \(json)
+        """
     }
 
     // MARK: - Export (give this file to an AI agent)
@@ -191,6 +170,30 @@ enum ProjectStore {
         imported.progress.completedTaskIDs =
             imported.progress.completedTaskIDs.intersection(validIDs)
         return imported
+    }
+
+    /// What an import would do, shown to the user before anything is saved.
+    struct ImportSummary {
+        let project: Project
+        let replacesExisting: Bool
+        let stageCount: Int
+        let taskCount: Int
+        let keptTicks: Int
+        let firstDeadline: Date?
+        let lastDeadline: Date?
+    }
+
+    static func importSummary(from raw: Data) throws -> ImportSummary {
+        let project = try importProject(from: raw)
+        let deadlines = project.definition.stages.compactMap(\.deadlineDate)
+        return ImportSummary(
+            project: project,
+            replacesExisting: loadAll().contains { $0.id == project.id },
+            stageCount: project.definition.stages.count,
+            taskCount: project.definition.stages.reduce(0) { $0 + $1.tasks.count },
+            keptTicks: project.progress.completedTaskIDs.count,
+            firstDeadline: deadlines.min(),
+            lastDeadline: deadlines.max())
     }
 
     /// Pulls the first {...} block out of whatever surrounds it (```json
@@ -288,19 +291,22 @@ enum ProjectStore {
 
     // MARK: - Instructions embedded in every project file
 
-    static let aiInstructions = """
+    static var aiInstructions: String { aiHowTo + "\n\n" + aiRules }
+
+    static let aiHowTo = """
     HOW TO TAILOR THIS TRACKER TO YOUR PROJECT
     ==========================================
-    1. In the app, open the Projects menu and choose "Export for AI…" to get \
-    this file.
-    2. Give the file to an AI assistant (Claude, ChatGPT, …) together with a \
-    description of YOUR situation: your real milestones or submission steps \
-    and their deadlines, how each is weighted (if graded), and what your \
-    project is about.
-    3. Ask: "Tailor this project tracker file to my project."
-    4. Back in the app: Projects menu → "Import Project JSON…" and pick the \
-    file the AI returned. Your ticked-off progress is preserved automatically.
+    1. In the app, open the Project menu and choose "Copy Prompt for AI" \
+    (or "Export File…" to get this file on its own).
+    2. Paste the prompt into an AI assistant (ChatGPT, Claude, …). Describe \
+    your project and list your real stages, deadlines and weightings where it \
+    asks.
+    3. Copy the JSON the assistant returns.
+    4. Back in the app: Project menu → "Import from Clipboard" (or "Import \
+    File…"), check the preview, and confirm. Ticked-off progress is kept.
+    """
 
+    static let aiRules = """
     RULES FOR THE AI ASSISTANT
     ==========================
     - Edit ONLY the "definition" section. Never change "progress", "id", \

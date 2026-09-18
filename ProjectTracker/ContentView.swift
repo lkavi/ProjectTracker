@@ -8,6 +8,10 @@ enum AppTab: Hashable {
     case pipeline, library
 }
 
+extension ProjectStore.ImportSummary: Identifiable {
+    var id: UUID { project.id }
+}
+
 // MARK: - iOS share sheet wrapper
 
 #if os(iOS)
@@ -36,8 +40,9 @@ struct ContentView: View {
 
     // Sheets & alerts
     @State private var showNewProject = false
-    @State private var newProjectName = ""
-    @State private var showPersonalizeGuide = false
+    @State private var showSetupGuide = false
+    @State private var showStageEditor = false
+    @State private var pendingImport: ProjectStore.ImportSummary?
     @State private var showRename = false
     @State private var renameText = ""
     @State private var showDeleteConfirm = false
@@ -46,6 +51,7 @@ struct ContentView: View {
     @State private var importError: String?
     @State private var showImporter = false
     @State private var showNotificationSettings = false
+    @State private var infoMessage: String?
     @State private var storageErrors = StorageErrors.shared
     #if os(iOS)
     @State private var showShareSheet = false
@@ -60,7 +66,7 @@ struct ContentView: View {
 
     var body: some View {
         tabContent
-            .alert("Clear all checked progress?", isPresented: $showResetConfirm) {
+            .alert("Clear all ticked tasks?", isPresented: $showResetConfirm) {
                 TextField("Type CONFIRM", text: $resetConfirmText)
                 Button("Cancel", role: .cancel) { resetConfirmText = "" }
                 Button("Reset", role: .destructive) {
@@ -72,13 +78,6 @@ struct ContentView: View {
                 .disabled(resetConfirmText != "CONFIRM")
             } message: {
                 Text("This clears every ticked task in \"\(active?.definition.name ?? "this project")\". It can't be undone. Type CONFIRM (all caps) to proceed.")
-            }
-            .alert("New Project", isPresented: $showNewProject) {
-                TextField("Project name", text: $newProjectName)
-                Button("Cancel", role: .cancel) { newProjectName = "" }
-                Button("Create") { createProject() }
-            } message: {
-                Text("Starts from the built-in template. Export it for an AI assistant to tailor the stages and tasks to your project.")
             }
             .alert("Rename Project", isPresented: $showRename) {
                 TextField("Project name", text: $renameText)
@@ -95,7 +94,7 @@ struct ContentView: View {
             } message: {
                 Text("The project structure and progress are removed. Attached PDFs and notes stay in iCloud Drive.")
             }
-            .alert("Couldn't import that file",
+            .alert("Couldn't import",
                    isPresented: .constant(importError != nil), presenting: importError) { _ in
                 Button("OK") { importError = nil }
             } message: { msg in Text(msg) }
@@ -111,25 +110,61 @@ struct ContentView: View {
             }) {
                 NotificationSettingsView(stages: active?.definition.stages ?? [])
             }
-            .sheet(isPresented: $showPersonalizeGuide) {
-                PersonalizeGuideView(
+            .sheet(isPresented: $showNewProject) {
+                NewProjectView { name, template, start, end in
+                    createProject(named: name, template: template, start: start, end: end)
+                }
+            }
+            .sheet(isPresented: $showSetupGuide) {
+                SetupGuideView(
                     projectName: active?.definition.name ?? "your project",
-                    onExport: {
-                        showPersonalizeGuide = false
-                        // Let the guide sheet dismiss before the share sheet /
-                        // save panel presents.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                            exportActive()
-                        }
-                    }
+                    onCopyPrompt: { copyPrompt() },
+                    onImportClipboard: { afterDismissal { importFromClipboard() } },
+                    onEditStages: { afterDismissal { showStageEditor = true } }
                 )
+            }
+            .sheet(isPresented: $showStageEditor) {
+                if let project = active {
+                    StageEditorView(stages: project.definition.stages) { stages in
+                        mutateActive {
+                            $0.definition.stages = stages
+                            $0.progress.completedTaskIDs.formIntersection($0.allTaskIDs)
+                        }
+                        expandedStages.formUnion(stages.map(\.id))
+                    }
+                }
+            }
+            .sheet(item: $pendingImport) { summary in
+                ImportPreviewView(summary: summary) { commitImport(summary.project) }
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json, .plainText]) { result in
                 guard let url = try? result.get() else { return }
-                _ = url.startAccessingSecurityScopedResource()
-                defer { url.stopAccessingSecurityScopedResource() }
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                 importProject(from: url)
             }
+            .onOpenURL { url in
+                // Files handed over by Files, Mail, Finder or another app.
+                // The widget's projecttracker:// link just opens the app.
+                guard url.isFileURL else { return }
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                importProject(from: url)
+            }
+            .overlay(alignment: .bottom) {
+                if let infoMessage {
+                    Text(infoMessage)
+                        .font(.footnote.weight(.medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(.regularMaterial)
+                        .clipShape(Capsule())
+                        .padding(.bottom, 70)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .accessibilityIdentifier("info-message")
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: infoMessage)
             #if os(iOS)
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(items: shareItems)
@@ -143,30 +178,30 @@ struct ContentView: View {
     private var tabContent: some View {
         #if os(macOS)
         TabView(selection: $selectedTab) {
-            pipelineTab.tabItem { Label("Pipeline", systemImage: "list.bullet.clipboard") }.tag(AppTab.pipeline)
-            ResearchView().tabItem { Label("Library", systemImage: "books.vertical") }.tag(AppTab.library)
+            stagesTab.tabItem { Label("Stages", systemImage: "checklist") }.tag(AppTab.pipeline)
+            ResearchView().tabItem { Label("Library", systemImage: "book.closed") }.tag(AppTab.library)
         }
         .frame(minWidth: 640, idealWidth: 860, minHeight: 700, idealHeight: 900)
         #else
         TabView(selection: $selectedTab) {
             // One keyboard "Done" toolbar per tab hierarchy — per-field toolbars
             // get merged by SwiftUI and show duplicate buttons.
-            NavigationStack { pipelineTab.keyboardDismissToolbar() }
-                .tabItem { Label("Pipeline", systemImage: "list.bullet.clipboard") }
+            NavigationStack { stagesTab.keyboardDismissToolbar() }
+                .tabItem { Label("Stages", systemImage: "checklist") }
                 .tag(AppTab.pipeline)
             NavigationStack { ResearchView().keyboardDismissToolbar() }
-                .tabItem { Label("Library", systemImage: "books.vertical") }
+                .tabItem { Label("Library", systemImage: "book.closed") }
                 .tag(AppTab.library)
         }
         #endif
     }
 
-    // MARK: - Pipeline tab
+    // MARK: - Stages tab
 
-    private var pipelineTab: some View {
+    private var stagesTab: some View {
         Group {
             if let project = active {
-                projectPipeline(project)
+                projectStages(project)
             } else {
                 emptyState
             }
@@ -224,54 +259,44 @@ struct ContentView: View {
         }
     }
 
-    private func projectPipeline(_ project: Project) -> some View {
+    private func projectStages(_ project: Project) -> some View {
         ScrollView {
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: sectionSpacing) {
-                    header(project)
-                    alertBanner(project)
-                    spotlight(project)
-                    #if os(macOS)
-                    macToolbar
-                    #endif
-                }
-                .padding(platformPadding)
-                .background(Color.appControlBackground)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: sectionSpacing) {
+                header(project)
+                alertBanner(project)
+                nextUp(project)
+                #if os(macOS)
+                macToolbar
+                #endif
 
-                Divider().overlay(Color.primary.opacity(0.08))
+                SectionTitle("All stages")
+                    .padding(.top, 6)
 
-                VStack(alignment: .leading, spacing: rowSpacing) {
-                    Text("ALL STAGES")
-                        .font(.appLabel)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 6)
-
-                    LazyVStack(alignment: .leading, spacing: rowSpacing) {
-                        ForEach(Array(project.definition.stages.enumerated()), id: \.element.id) { index, stage in
-                            StageRowView(
-                                stage: stage,
-                                number: index + 1,
-                                isDone: project.isStageDone(stage),
-                                completedTaskIDs: project.progress.completedTaskIDs,
-                                onToggle: { taskID, newValue in
-                                    mutateActive { $0.setTask(taskID, done: newValue) }
-                                },
-                                bufferDays: bufferDays,
-                                isExpanded: Binding(
-                                    get: { expandedStages.contains(stage.id) },
-                                    set: { newVal in
-                                        if newVal { expandedStages.insert(stage.id) }
-                                        else { expandedStages.remove(stage.id) }
-                                    }
-                                )
-                            )
-                        }
+                LazyVStack(alignment: .leading, spacing: rowSpacing) {
+                    ForEach(Array(project.definition.stages.enumerated()), id: \.element.id) { index, stage in
+                        StageRowView(
+                            stage: stage,
+                            number: index + 1,
+                            isDone: project.isStageDone(stage),
+                            completedTaskIDs: project.progress.completedTaskIDs,
+                            onToggle: { taskID, newValue in
+                                mutateActive { $0.setTask(taskID, done: newValue) }
+                            },
+                            bufferDays: bufferDays,
+                            isExpanded: Binding(
+                                get: { expandedStages.contains(stage.id) },
+                                set: { newVal in
+                                    if newVal { expandedStages.insert(stage.id) }
+                                    else { expandedStages.remove(stage.id) }
+                                }
+                            ),
+                            onEdit: { showStageEditor = true }
+                        )
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(platformPadding)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(platformPadding)
         }
     }
 
@@ -279,21 +304,22 @@ struct ContentView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "list.bullet.clipboard")
-                .font(.system(size: 52))
+            Image(systemName: "checklist")
+                .font(.system(size: 44))
                 .foregroundStyle(.tertiary)
             Text("No projects yet")
                 .font(.title3.bold())
-            Text("Create a project to get a ready-made stage template. Export it, give it to an AI assistant with your project idea and your real milestones or submission steps, then import the tailored file back.")
+            Text("Create a project from a template, then shape its stages by hand or with an AI assistant. Or import a project file you already have.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 420)
             HStack(spacing: 12) {
-                Button("New Project") { newProjectName = ""; showNewProject = true }
+                Button("New Project") { showNewProject = true }
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("new-project-button")
-                Button("Import Project JSON…") { showImporter = true }
+                Button("Import File…") { showImporter = true }
+                Button("Import from Clipboard") { importFromClipboard() }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -308,7 +334,7 @@ struct ContentView: View {
         #endif
     }
 
-    /// Vertical gap between the big header blocks (header/banner/spotlight).
+    /// Vertical gap between the header blocks.
     private var sectionSpacing: CGFloat {
         #if os(macOS)
         return 16
@@ -317,10 +343,10 @@ struct ContentView: View {
         #endif
     }
 
-    /// Gap between stage cards / the "ALL STAGES" label.
+    /// Gap between stage cards.
     private var rowSpacing: CGFloat {
         #if os(macOS)
-        return 14
+        return 12
         #else
         return 10
         #endif
@@ -330,51 +356,45 @@ struct ContentView: View {
 
     @ViewBuilder
     private func header(_ project: Project) -> some View {
+        let done = project.passedStageCount
+        let total = project.definition.stages.count
         #if os(iOS)
-        // The nav bar already shows the project name, so the header stays
-        // compact: progress count + bar, plus the project menu and topic.
+        // The navigation bar already shows the project name.
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("\(project.passedStageCount) of \(project.definition.stages.count) stages passed")
+                Text("\(done) of \(total) stages done")
                     .font(.headline)
-                    .foregroundStyle(.primary)
                     .accessibilityIdentifier("progress-summary")
                 Spacer()
                 projectMenu(project)
             }
             if let topic = project.definition.topic, !topic.isEmpty {
                 Text(topic)
-                    .font(.appMeta)
-                    .foregroundStyle(.blue)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            ProgressView(value: Double(project.passedStageCount),
-                         total: Double(max(project.definition.stages.count, 1)))
+            ProgressView(value: Double(done), total: Double(max(total, 1)))
                 .tint(.green)
         }
         #else
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text("PROJECT TRACKER")
-                    .font(.subheadline.monospaced())
-                    .foregroundStyle(.secondary)
+                Text(project.definition.name)
+                    .font(.largeTitle.bold())
                 Spacer()
                 projectMenu(project)
             }
-            Text(project.definition.name)
-                .font(.largeTitle.bold())
-                .foregroundStyle(.primary)
             if let topic = project.definition.topic, !topic.isEmpty {
-                Text("topic · \(topic)")
-                    .font(.callout.monospaced())
-                    .foregroundStyle(.blue)
+                Text(topic)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
-            Text("\(project.passedStageCount) / \(project.definition.stages.count) stages passed")
-                .font(.callout.monospaced())
+            Text("\(done) of \(total) stages done")
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("progress-summary")
-            ProgressView(value: Double(project.passedStageCount),
-                         total: Double(max(project.definition.stages.count, 1)))
+            ProgressView(value: Double(done), total: Double(max(total, 1)))
                 .tint(.green)
                 .padding(.top, 2)
         }
@@ -388,23 +408,36 @@ struct ContentView: View {
             if projects.count > 1 {
                 ForEach(projects) { p in
                     Button { setActive(p.id) } label: {
-                        Label(p.definition.name, systemImage: p.id == project.id ? "checkmark" : "")
+                        if p.id == project.id {
+                            Label(p.definition.name, systemImage: "checkmark")
+                        } else {
+                            Text(p.definition.name)
+                        }
                     }
                 }
                 Divider()
             }
-            Button { newProjectName = ""; showNewProject = true } label: {
+            Button { showNewProject = true } label: {
                 Label("New Project…", systemImage: "plus")
             }
             Button { renameText = project.definition.name; showRename = true } label: {
                 Label("Rename…", systemImage: "pencil")
             }
+            Button { showStageEditor = true } label: {
+                Label("Edit Stages…", systemImage: "list.bullet")
+            }
             Divider()
+            Button { copyPrompt() } label: {
+                Label("Copy Prompt for AI", systemImage: "doc.on.doc")
+            }
+            Button { importFromClipboard() } label: {
+                Label("Import from Clipboard", systemImage: "doc.on.clipboard")
+            }
             Button { exportActive() } label: {
-                Label("Export for AI / Backup…", systemImage: "square.and.arrow.up")
+                Label("Export File…", systemImage: "square.and.arrow.up")
             }
             Button { showImporter = true } label: {
-                Label("Import Project JSON…", systemImage: "square.and.arrow.down")
+                Label("Import File…", systemImage: "square.and.arrow.down")
             }
             #if os(macOS)
             Button { revealProjectsFolder() } label: {
@@ -416,12 +449,16 @@ struct ContentView: View {
                 Label("Delete Project…", systemImage: "trash")
             }
         } label: {
-            Label(projects.count > 1 ? "Projects (\(projects.count))" : "Project",
-                  systemImage: "folder")
-                .font(.callout)
+            HStack(spacing: 4) {
+                Text(projects.count > 1 ? "Projects" : "Project")
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+            .font(.callout)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .accessibilityIdentifier("project-menu")
     }
 
     #if os(iOS)
@@ -445,104 +482,91 @@ struct ContentView: View {
     }
     #endif
 
-    // MARK: - Alert banner
+    // MARK: - Attention banner
 
     @ViewBuilder
     private func alertBanner(_ project: Project) -> some View {
         let urgent = project.urgentStages()
         if !urgent.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("⚠ \(urgent.count) stage\(urgent.count > 1 ? "s" : "") need\(urgent.count > 1 ? "" : "s") you now")
-                    .font(.appLabelBold)
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.red)
-                ForEach(urgent) { stage in
-                    Text("• \(stage.title) — \(stage.dueText())")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(urgent.count == 1 ? "1 stage needs attention" : "\(urgent.count) stages need attention")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.red)
+                    ForEach(urgent) { stage in
+                        Text("\(stage.title) · \(stage.dueText())")
+                            .font(.subheadline)
+                    }
                 }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.14))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(Color.red.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
-    // MARK: - Next Up spotlight
+    // MARK: - Next up
 
     @ViewBuilder
-    private func spotlight(_ project: Project) -> some View {
+    private func nextUp(_ project: Project) -> some View {
         if let stage = project.nextStage,
            let index = project.definition.stages.firstIndex(where: { $0.id == stage.id }) {
             let done   = project.isStageDone(stage)
             let status = stage.status(done: done, daysEarly: bufferDays)
 
-            HStack(alignment: .top, spacing: 0) {
-                Rectangle().fill(status.color).frame(width: 4)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("▶ NEXT UP · STAGE \(index + 1) OF \(project.definition.stages.count)")
-                        .font(.appLabelBold)
-                        .foregroundStyle(status.color)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Next up · Stage \(index + 1) of \(project.definition.stages.count)")
+                        .font(.appLabel)
+                        .foregroundStyle(.secondary)
                         .accessibilityIdentifier("next-up-title")
+                    Spacer()
+                    StatusBadge(status: status)
+                }
 
-                    Text(stage.title)
-                        .font(.title3.bold())
-                        .foregroundStyle(.primary)
+                Text(stage.title)
+                    .font(.title3.bold())
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            Text(stage.dueText())
-                                .font(.appLabelBold)
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(status.color.opacity(0.22))
-                                .foregroundStyle(status.color)
-                                .clipShape(Capsule())
-                            if let target = stage.targetDate(daysEarly: bufferDays) {
-                                Text("target · \(shortDate(target))")
-                                    .font(.appMeta)
-                                    .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Color.appControlBackground)
-                                    .foregroundStyle(.secondary)
-                                    .clipShape(Capsule())
-                            }
-                            if let weight = stage.weight {
-                                Text("summative · \(weight)")
-                                    .font(.appMeta)
-                                    .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Color.purple.opacity(0.18))
-                                    .foregroundStyle(.purple)
-                                    .clipShape(Capsule())
-                            }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        TagCapsule(text: stage.dueText(), tint: status == .queued ? nil : status.color)
+                        if let target = stage.targetDate(daysEarly: bufferDays) {
+                            TagCapsule(text: "Target \(shortDate(target))")
                         }
-                    }
-
-                    Divider().overlay(status.color.opacity(0.3))
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(stage.tasks) { task in
-                            let checked = project.isTaskDone(task.id)
-                            Toggle(isOn: Binding(
-                                get: { checked },
-                                set: { newVal in mutateActive { $0.setTask(task.id, done: newVal) } }
-                            )) {
-                                Text(task.title)
-                                    .font(.subheadline)
-                                    .strikethrough(checked)
-                                    .foregroundStyle(checked ? .secondary : .primary)
-                            }
-                            .checkboxToggleStyle()
+                        if let weight = stage.weight {
+                            TagCapsule(text: "Weighted \(weight)")
                         }
                     }
                 }
-                .padding(14)
 
-                Spacer(minLength: 0)
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(stage.tasks) { task in
+                        let checked = project.isTaskDone(task.id)
+                        Toggle(isOn: Binding(
+                            get: { checked },
+                            set: { newVal in mutateActive { $0.setTask(task.id, done: newVal) } }
+                        )) {
+                            Text(task.title)
+                                .font(.subheadline)
+                                .strikethrough(checked)
+                                .foregroundStyle(checked ? .secondary : .primary)
+                        }
+                        .checkboxToggleStyle()
+                    }
+                }
             }
+            .padding(14)
+            .padding(.leading, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(status.color.opacity(0.14))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: status.color.opacity(0.2), radius: 8, y: 3)
+            .background(Color.appControlBackground)
+            .overlay(alignment: .leading) { Rectangle().fill(status.color).frame(width: 4) }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -555,6 +579,9 @@ struct ContentView: View {
                 Label("Settings", systemImage: "gearshape")
             }
             .accessibilityIdentifier("settings-button")
+            Button { showStageEditor = true } label: {
+                Label("Edit Stages", systemImage: "list.bullet")
+            }
             Spacer()
             Button("Reset Progress", role: .destructive) { showResetConfirm = true }
             Button("Collapse All") { expandedStages = [] }
@@ -598,16 +625,12 @@ struct ContentView: View {
         ProjectStore.save(project)
     }
 
-    private func createProject() {
-        let project = ProjectStore.create(named: newProjectName)
-        newProjectName = ""
+    private func createProject(named name: String, template: ProjectTemplate, start: Date, end: Date) {
+        let project = ProjectStore.create(named: name, template: template, start: start, end: end)
         projects.append(project)
         setActive(project.id)
-        // Let the "New Project" alert finish dismissing before presenting the
-        // personalization guide, so the two presentations don't collide.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            showPersonalizeGuide = true
-        }
+        // Let the New Project sheet finish dismissing before the guide appears.
+        afterDismissal { showSetupGuide = true }
     }
 
     private func deleteActiveProject() {
@@ -619,21 +642,45 @@ struct ContentView: View {
         ProjectStore.refreshWidgetSnapshots()
     }
 
+    // MARK: - Import / export / AI prompt
+
     private func importProject(from url: URL) {
         guard let data = try? Data(contentsOf: url) else {
             importError = "The file couldn't be read."
             return
         }
+        previewImport(data)
+    }
+
+    private func importFromClipboard() {
+        guard let text = Clipboard.text,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            importError = "The clipboard is empty. Copy the JSON your assistant returned, then try again."
+            return
+        }
+        previewImport(Data(text.utf8))
+    }
+
+    private func previewImport(_ data: Data) {
         do {
-            let project = try ProjectStore.importProject(from: data)
-            ProjectStore.save(project)
-            reload()
-            setActive(project.id)
+            pendingImport = try ProjectStore.importSummary(from: data)
         } catch let error as ProjectStore.ImportError {
             importError = error.message
         } catch {
             importError = "Unexpected error: \(error.localizedDescription)"
         }
+    }
+
+    private func commitImport(_ project: Project) {
+        ProjectStore.save(project)
+        reload()
+        setActive(project.id)
+    }
+
+    private func copyPrompt() {
+        guard let project = active else { return }
+        Clipboard.copy(ProjectStore.aiPrompt(for: project))
+        showInfo("Prompt copied. Paste it into your AI assistant.")
     }
 
     private func exportActive() {
@@ -674,6 +721,19 @@ struct ContentView: View {
 
     // MARK: - Helpers
 
+    /// Runs after the current sheet has had time to dismiss, so two
+    /// presentations don't collide.
+    private func afterDismissal(_ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: action)
+    }
+
+    private func showInfo(_ message: String) {
+        infoMessage = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if infoMessage == message { infoMessage = nil }
+        }
+    }
+
     private func loadExpandedState() -> Set<UUID>? {
         guard let saved = UserDefaults.standard.array(forKey: Self.expandedStorageKey) as? [String]
         else { return nil }
@@ -685,7 +745,7 @@ struct ContentView: View {
     }
 
     private func shortDate(_ date: Date) -> String {
-        let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date)
+        date.formatted(.dateTime.day().month(.abbreviated))
     }
 }
 

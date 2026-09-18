@@ -126,8 +126,8 @@ struct StageNotesView: View {
 
     private func fileRow(file: StageFile, isFinal: Bool) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "doc.fill")
-                .foregroundStyle(isFinal ? Color.green : Color.orange)
+            Image(systemName: isFinal ? "doc.text.fill" : "doc.text")
+                .foregroundStyle(isFinal ? Color.green : Color.secondary)
                 .font(.callout)
 
             TextField("Name", text: nameBinding(for: file))

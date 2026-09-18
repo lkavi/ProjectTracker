@@ -35,7 +35,8 @@ Project Tracker is a university project, academic project and personal project t
 Lay out the stages you actually have to get through, each with its deadline, its weighting and a short checklist. The app tells you what is next, what is running and what is overdue, and shows a personal target a few days ahead of the official date so you finish with room to spare.
 
 WHAT YOU GET
-• Stages with deadlines, weightings and task checklists
+• Templates for dissertations, final-year projects, PhD years, exams and personal projects
+• Stages with deadlines, weightings and task checklists, editable in the app
 • A "next up" card and an urgent banner for anything due within three days
 • Your own target buffer: aim 1 to 7 days ahead of every deadline
 • Notes plus draft and final PDFs attached to each stage
@@ -46,7 +47,7 @@ WHAT YOU GET
 • iCloud sync between iPhone, iPad and Mac
 
 MAKE IT YOURS IN MINUTES
-New projects start from a generic template. Export it as a file, give it to an AI assistant together with your module handbook, milestone list or submission dates, and import the result. Every task you have already ticked off is kept.
+Pick a template and your final deadline, then shape the stages by hand, or copy the built-in prompt into an AI assistant, answer its questions and paste the reply back. A preview shows exactly what changes, and every task you have already ticked off is kept.
 
 MADE FOR
 • Undergraduate and postgraduate students on a dissertation, thesis, final-year or capstone project
@@ -55,6 +56,14 @@ MADE FOR
 
 PRIVATE BY DESIGN
 No account, no analytics, no server. Your projects live in your own iCloud Drive and on your own devices, and the app works fully offline.
+
+## What's New (version 1.1)
+
+> • Templates for final-year projects, dissertations, PhD years, exams and personal projects, with deadlines spread between your start date and final deadline
+> • Edit stages and tasks in the app: add, rename, reorder, delete, set deadlines and weightings
+> • Copy a ready-made prompt for your AI assistant and import its reply straight from the clipboard, with a preview of what will change
+> • Open project files directly from Files, Mail or Finder
+> • A calmer look: plain wording, standard type, a new icon, and a widget that matches the home screen
 
 ## What's New (version 1.0)
 

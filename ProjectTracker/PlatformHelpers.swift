@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 // MARK: - Cross-platform semantic colors
 
@@ -8,7 +13,7 @@ extension Color {
         #if os(macOS)
         Color(NSColor.windowBackgroundColor)
         #else
-        Color(UIColor.systemBackground)
+        Color(UIColor.systemGroupedBackground)
         #endif
     }
 
@@ -17,7 +22,7 @@ extension Color {
         #if os(macOS)
         Color(NSColor.controlBackgroundColor)
         #else
-        Color(UIColor.secondarySystemBackground)
+        Color(UIColor.secondarySystemGroupedBackground)
         #endif
     }
 
@@ -26,41 +31,20 @@ extension Color {
         #if os(macOS)
         Color(NSColor.textBackgroundColor)
         #else
-        Color(UIColor.tertiarySystemBackground)
+        Color(UIColor.tertiarySystemGroupedBackground)
         #endif
     }
 }
 
-// MARK: - Cross-platform label fonts
-// iOS gets rounded, easier-to-read labels; macOS keeps the terminal-mono look.
+// MARK: - Typography (system text styles on both platforms)
 
 extension Font {
-    /// Section / status labels ("ALL STAGES", "NOTES", status words).
-    static var appLabel: Font {
-        #if os(iOS)
-        .system(.caption, design: .rounded).weight(.semibold)
-        #else
-        .caption.monospaced()
-        #endif
-    }
-
+    /// Section / status labels.
+    static var appLabel: Font { .footnote.weight(.semibold) }
     /// Emphasised label variant.
-    static var appLabelBold: Font {
-        #if os(iOS)
-        .system(.caption, design: .rounded).weight(.bold)
-        #else
-        .caption.monospaced().bold()
-        #endif
-    }
-
+    static var appLabelBold: Font { .footnote.bold() }
     /// Small secondary metadata (due dates, targets, weights).
-    static var appMeta: Font {
-        #if os(iOS)
-        .system(.caption2, design: .rounded)
-        #else
-        .caption.monospaced()
-        #endif
-    }
+    static var appMeta: Font { .caption }
 }
 
 // MARK: - Cross-platform toggle style
@@ -72,9 +56,9 @@ struct CheckboxToggleStyle: ToggleStyle {
             configuration.isOn.toggle()
         } label: {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .foregroundStyle(configuration.isOn ? Color.accentColor : .secondary)
-                    .font(.body)
+                Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)
+                    .font(.title3)
                 configuration.label
             }
         }
@@ -84,7 +68,7 @@ struct CheckboxToggleStyle: ToggleStyle {
 #endif
 
 extension View {
-    /// Checkbox style on macOS and iOS; avoids the large UISwitch on iPhone.
+    /// Native checkbox on macOS; a circular check on iOS instead of the large switch.
     @ViewBuilder func checkboxToggleStyle() -> some View {
         #if os(macOS)
         self.toggleStyle(.checkbox)
@@ -112,6 +96,27 @@ extension View {
         }
         #else
         self
+        #endif
+    }
+}
+
+// MARK: - Clipboard
+
+enum Clipboard {
+    static func copy(_ text: String) {
+        #if os(iOS)
+        UIPasteboard.general.string = text
+        #else
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #endif
+    }
+
+    static var text: String? {
+        #if os(iOS)
+        UIPasteboard.general.string
+        #else
+        NSPasteboard.general.string(forType: .string)
         #endif
     }
 }

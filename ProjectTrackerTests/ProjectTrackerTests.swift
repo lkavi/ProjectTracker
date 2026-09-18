@@ -39,10 +39,73 @@ struct StageStatusTests {
 
     @Test func dueTextWording() {
         let today = Date()
-        #expect(dueText(for: nil, from: today) == "no deadline")
-        #expect(dueText(for: today, from: today) == "due today")
-        #expect(dueText(for: day(5, from: today), from: today) == "due in 5d")
-        #expect(dueText(for: day(-2, from: today), from: today) == "overdue 2d")
+        #expect(dueText(for: nil, from: today) == "No deadline")
+        #expect(dueText(for: today, from: today) == "Due today")
+        #expect(dueText(for: day(1, from: today), from: today) == "Due tomorrow")
+        #expect(dueText(for: day(5, from: today), from: today) == "Due in 5 days")
+        #expect(dueText(for: day(-1, from: today), from: today) == "Overdue by 1 day")
+        #expect(dueText(for: day(-2, from: today), from: today) == "Overdue by 2 days")
+    }
+
+    @Test func statusLabelsAreHumanWords() {
+        #expect(StageStatus.passed.label == "Done")
+        #expect(StageStatus.running.label == "In progress")
+        #expect(StageStatus.blocked.label == "Overdue")
+        #expect(StageStatus.queued.label == "Upcoming")
+    }
+}
+
+// MARK: - Templates and the AI prompt
+
+@MainActor
+struct TemplateAndPromptTests {
+    @Test func everyTemplateIsWellFormed() {
+        for template in ProjectTemplate.all {
+            #expect(!template.stages.isEmpty, "\(template.name) has stages")
+            #expect(template.stages.allSatisfy { !$0.tasks.isEmpty }, "\(template.name): every stage has a task")
+            #expect(template.stages.last?.position == 1.0, "\(template.name) ends on the final deadline")
+            let positions = template.stages.map(\.position)
+            #expect(positions == positions.sorted(), "\(template.name) stages are in date order")
+        }
+        #expect(Set(ProjectTemplate.all.map(\.id)).count == ProjectTemplate.all.count)
+    }
+
+    @Test func templateDeadlinesSpanStartToEnd() throws {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: Date())
+        let end = cal.date(byAdding: .day, value: 100, to: start)!
+        let stages = ProjectTemplate.default.makeStages(start: start, end: end)
+        let deadlines = try stages.map { try #require($0.deadlineDate) }
+        #expect(deadlines == deadlines.sorted())
+        #expect(deadlines.first! >= start)
+        #expect(cal.isDate(deadlines.last!, inSameDayAs: end))
+        #expect(Set(stages.map(\.id)).count == stages.count)
+        #expect(stages.allSatisfy { !$0.tasks.isEmpty })
+    }
+
+    @Test func promptContainsRulesSituationAndProjectFile() {
+        let project = Project(definition: ProjectDefinition(name: "Thesis", stages: [
+            ProjectStage(title: "A", tasks: [ProjectTask(title: "t")])]))
+        let prompt = ProjectStore.aiPrompt(for: project)
+        #expect(prompt.contains("MY SITUATION"))
+        #expect(prompt.contains("RULES FOR THE AI ASSISTANT"))
+        #expect(prompt.contains("PROJECT FILE"))
+        #expect(prompt.contains("\"name\" : \"Thesis\""))
+        #expect(prompt.contains("\"_instructions\""))
+    }
+
+    @Test func promptRoundTripsThroughTheImporter() throws {
+        // A user who pastes the whole prompt back (instead of just the JSON)
+        // must still get a valid import: the extractor finds the JSON block.
+        let project = Project(definition: ProjectDefinition(name: "Thesis", stages: [
+            ProjectStage(title: "A", deadline: "2030-01-01", tasks: [ProjectTask(title: "t")])]))
+        let summary = try ProjectStore.importSummary(from: Data(ProjectStore.aiPrompt(for: project).utf8))
+        #expect(summary.project.id == project.id)
+        #expect(summary.stageCount == 1)
+        #expect(summary.taskCount == 1)
+        #expect(summary.keptTicks == 0)
+        #expect(summary.replacesExisting == false)
+        #expect(summary.firstDeadline != nil && summary.firstDeadline == summary.lastDeadline)
     }
 }
 

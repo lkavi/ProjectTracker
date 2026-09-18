@@ -22,8 +22,9 @@ It is deliberately a single-person tool. One person, their stages, their deadlin
 
 ## What it does
 
-- **Stages with deadlines and weights.** Every stage has a title, an optional deadline, an optional weighting such as "15%", and a checklist of tasks. A stage passes when every task is ticked.
-- **Status at a glance.** Each stage is *passed*, *running*, *blocked* (overdue) or *queued*, colour-coded, computed from the deadline and your personal buffer.
+- **Templates and a date wizard.** Pick a template (final-year project, master's dissertation, PhD year plan, certification, personal project, or blank), give it a start date and a final deadline, and the stage deadlines are spread to fit.
+- **Stages with deadlines and weights.** Every stage has a title, an optional deadline, an optional weighting such as "15%", and a checklist of tasks. A stage is done when every task is ticked. Add, rename, reorder and delete stages and tasks in the built-in editor.
+- **Status at a glance.** Each stage is *done*, *in progress*, *overdue* or *upcoming*, computed from the deadline and your personal buffer.
 - **Next-up spotlight and urgent banner.** The first unfinished stage is pinned at the top with its checklist. Anything due within three days gets a red banner.
 - **Personal target buffer.** Aim to finish 0 to 7 days before the official date. The app and the widget show "your target" next to the real deadline.
 - **Notes and PDFs per stage.** Free-form notes, plus draft PDFs and a final-submission PDF attached to each stage.
@@ -32,16 +33,16 @@ It is deliberately a single-person tool. One person, their stages, their deadlin
 - **Multiple projects.** Create, switch, rename and delete projects. Resetting progress requires typing CONFIRM.
 - **Widget in three sizes.** Next stage, deadline, target, task checklist and notes. Long-press the widget to pin it to one project or let it follow whichever project is active.
 - **iCloud sync.** Projects, notes, PDFs and references sync between your Mac and iPhone through your own iCloud Drive. It also works offline and without an iCloud account, using local storage.
-- **Tailor the template with an AI assistant.** Export a project as JSON, hand it to ChatGPT or Claude together with your real stages, deadlines and weightings, and import the result. Ticked tasks survive the round-trip.
+- **Tailor the template with an AI assistant.** Copy a ready-made prompt, paste it into any assistant, answer its questions, then paste its reply back with Import from Clipboard. A preview shows what will change before anything is saved, and ticked tasks survive the round-trip. Project files can also be opened directly from Files, Mail or Finder.
 
 ## Tailoring a project with an AI assistant
 
-1. **Create a project.** It starts from a generic six-stage template with deadlines spread over the coming months.
-2. **Export.** Project menu → *Export for AI / Backup…*. The JSON file carries an `_instructions` block that tells the assistant exactly what it may change.
-3. **Describe your situation.** Attach the file in any capable assistant and give it your module handbook, milestone list or submission dates, plus a sentence about the project itself.
-4. **Import.** Project menu → *Import Project JSON…* and pick the file the assistant returned.
+1. **Create a project** from a template with your start date and final deadline.
+2. **Copy the prompt.** Project menu → *Copy Prompt for AI* (also offered right after creating a project). The prompt carries the rules, a place for your situation and the project JSON; if you paste it without describing your project, the assistant is told to ask you first.
+3. **Answer the assistant's questions**: your real stages or submission steps, their deadlines, any weightings.
+4. **Import.** Copy the assistant's reply, then Project menu → *Import from Clipboard*. A preview lists the stages, tasks and dates and says whether it replaces the current project or adds a new one. *Import File…* and opening a `.json` from Files, Mail or Finder work the same way.
 
-Stages and tasks are matched by UUID, so renaming or reordering never loses progress. The importer is deliberately forgiving: it strips markdown fences and commentary, accepts tasks written as bare strings, invents missing ids, de-duplicates repeated ids, and drops progress for tasks that no longer exist.
+Stages and tasks are matched by UUID, so renaming or reordering never loses progress. The importer is deliberately forgiving: it strips markdown fences and commentary (even a whole pasted prompt), accepts tasks written as bare strings, invents missing ids, de-duplicates repeated ids, and drops progress for tasks that no longer exist.
 
 ```json
 {
@@ -101,7 +102,13 @@ xcodebuild test -project ProjectTracker.xcodeproj -scheme ProjectTracker \
 ```
 ProjectTracker/                 App target (SwiftUI, iOS + macOS in one target)
   ProjectTrackerApp.swift         Entry point, iCloud container bootstrap
-  ContentView.swift               Pipeline tab: header, urgent banner, next-up card, stage list, project menu
+  ContentView.swift               Stages tab: header, attention banner, next-up card, stage list, project menu, import flow
+  NewProjectView.swift            Name, template and dates for a new project
+  StageEditorView.swift           Add, rename, reorder and delete stages and tasks
+  ImportPreviewView.swift         What an import will change, before it is saved
+  SetupGuideView.swift            The three ways to shape a new project: AI prompt, editor, file
+  ProjectTemplates.swift          Built-in templates with relative deadline positions
+  Components.swift                Status badge, tag capsule, section title, card surface
   StageRowView.swift              Collapsible stage card with checklist
   StageNotesView.swift            Per-stage notes plus draft / final PDFs
   ResearchView.swift              Reference library tab
@@ -111,7 +118,6 @@ ProjectTracker/                 App target (SwiftUI, iOS + macOS in one target)
   ArtifactsStore.swift            Notes and PDF persistence per stage
   ResearchStore.swift             Library persistence
   CloudContainer.swift            iCloud Drive resolution, coordinated file I/O, change monitoring
-  PersonalizeGuideView.swift      The export → AI → import walkthrough shown after creating a project
   StorageErrors.swift             Collects file-system failures for the "Couldn't save" alert
   UITestSupport.swift             --ui-testing launch hooks: scratch data folder, no iCloud
   PrivacyInfo.xcprivacy           Privacy manifest
@@ -130,5 +136,5 @@ Everything is plain files in your own iCloud Drive container (or local Documents
 
 ## Current limitations
 
-- Stages and tasks are edited through the JSON export/import round-trip (or an AI assistant). There is no in-app stage editor yet.
 - English only.
+- One person per project: there is no sharing or collaboration.
