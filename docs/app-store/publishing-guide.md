@@ -111,6 +111,15 @@ Then, on the app-level pages:
 - ☐ Keep the privacy policy URL working; Apple checks it on every submission.
 - Plan a 1.0.1 from what real users report; the README's *Current limitations* lists the known gaps.
 
+## If review comes back "Guideline 2.1 – Information Needed"
+
+Apple asks most first submissions for a screen recording and a description. Nothing is wrong with the app; answer once and it is kept on file.
+
+1. ☐ On a physical iPhone running the latest iOS, install the submitted build from TestFlight and record the screen (Control Center → Screen Recording). Follow the script in `listing.md` under *Notes for App Review*: launch → New Project → tick tasks → expand a stage and add a note → Library → Settings and reminders → Export / Import with the sample file → add and configure the widget. One to two minutes is enough. AirDrop the video to the Mac.
+2. ☐ In App Store Connect open the review message thread, click Reply, paste the *Notes for App Review* text from `listing.md`, attach the video, and send.
+3. ☐ Also paste the same text into App Information → App Review Information → Notes, so future submissions carry it.
+4. ☐ Click **Resubmit to App Review**.
+
 ## Releasing an update (1.1 and later)
 
 1. ☐ Bump `MARKETING_VERSION` (e.g. 1.1) and `CURRENT_PROJECT_VERSION` (e.g. 2) in **both** the app and the widget targets. Identical values are required; a reused build number is refused.

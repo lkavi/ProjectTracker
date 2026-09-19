@@ -1,0 +1,202 @@
+{
+  "_instructions": "Sample project for App Review and for trying the import. Import it with Project menu > Import Project JSON (1.0) or Import File / Import from Clipboard (1.1+).",
+  "createdAt": "2026-07-21T09:00:00Z",
+  "definition": {
+    "name": "Sample: MSc Dissertation",
+    "stages": [
+      {
+        "deadline": "2026-08-08",
+        "id": "00000000-0000-0000-0000-000000005001",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-000000007002",
+            "title": "Agree topic and research questions with supervisor"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007003",
+            "title": "Write problem statement, aims and objectives"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007004",
+            "title": "Submit proposal form"
+          }
+        ],
+        "title": "Proposal & Scope",
+        "weight": null
+      },
+      {
+        "deadline": "2026-09-05",
+        "id": "00000000-0000-0000-0000-000000005005",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-000000007006",
+            "title": "Collect 20\u201325 core papers on load forecasting"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007007",
+            "title": "Build the literature review matrix"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007008",
+            "title": "Write up the research gap"
+          }
+        ],
+        "title": "Literature Review",
+        "weight": null
+      },
+      {
+        "deadline": "2026-09-21",
+        "id": "00000000-0000-0000-0000-000000005009",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-00000000700a",
+            "title": "Choose models: LSTM vs. gradient boosting baseline"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000700b",
+            "title": "Define evaluation metrics (MAE, RMSE, MAPE)"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000700c",
+            "title": "Justify the 70/15/15 train/validation/test split"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000700d",
+            "title": "Complete the ethics checklist"
+          }
+        ],
+        "title": "Methodology & Design",
+        "weight": "10%"
+      },
+      {
+        "deadline": "2026-10-17",
+        "id": "00000000-0000-0000-0000-00000000500e",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-00000000700f",
+            "title": "Export two years of half-hourly meter readings"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007010",
+            "title": "Handle gaps, outliers and daylight-saving shifts"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007011",
+            "title": "Document the preprocessing pipeline"
+          }
+        ],
+        "title": "Data Collection & Cleaning",
+        "weight": null
+      },
+      {
+        "deadline": "2026-11-21",
+        "id": "00000000-0000-0000-0000-000000005012",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-000000007013",
+            "title": "Build the baseline model"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007014",
+            "title": "Build and tune the LSTM"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007015",
+            "title": "Set up reproducible experiment runs"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007016",
+            "title": "Record design decisions and trade-offs"
+          }
+        ],
+        "title": "Implementation",
+        "weight": "20%"
+      },
+      {
+        "deadline": "2026-12-19",
+        "id": "00000000-0000-0000-0000-000000005017",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-000000007018",
+            "title": "Run the full evaluation on the held-out year"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007019",
+            "title": "Compare against the baseline and a naive forecast"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000701a",
+            "title": "Write the limitations honestly"
+          }
+        ],
+        "title": "Evaluation & Analysis",
+        "weight": null
+      },
+      {
+        "deadline": "2027-01-16",
+        "id": "00000000-0000-0000-0000-00000000501b",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-00000000701c",
+            "title": "Assemble all chapters into one draft"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000701d",
+            "title": "Consistency and referencing pass"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000701e",
+            "title": "Full supervisor review round"
+          },
+          {
+            "id": "00000000-0000-0000-0000-00000000701f",
+            "title": "Revise per feedback"
+          }
+        ],
+        "title": "Final Dissertation Draft",
+        "weight": null
+      },
+      {
+        "deadline": "2027-02-06",
+        "id": "00000000-0000-0000-0000-000000005020",
+        "tasks": [
+          {
+            "id": "00000000-0000-0000-0000-000000007021",
+            "title": "Final proofreading and formatting"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007022",
+            "title": "Package code, data notes and appendices"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007023",
+            "title": "Rehearse the viva presentation"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000007024",
+            "title": "Back up in two places, then submit"
+          }
+        ],
+        "title": "Final Submission & Viva",
+        "weight": "70%"
+      }
+    ],
+    "topic": "Short-term energy-demand forecasting for campus buildings"
+  },
+  "id": "00000000-0000-0000-0000-0000000a11ce",
+  "progress": {
+    "completedTaskIDs": [
+      "00000000-0000-0000-0000-000000007002",
+      "00000000-0000-0000-0000-000000007003",
+      "00000000-0000-0000-0000-000000007004",
+      "00000000-0000-0000-0000-000000007006",
+      "00000000-0000-0000-0000-000000007007",
+      "00000000-0000-0000-0000-000000007008",
+      "00000000-0000-0000-0000-00000000700a",
+      "00000000-0000-0000-0000-00000000700b",
+      "00000000-0000-0000-0000-00000000700c",
+      "00000000-0000-0000-0000-00000000700f"
+    ]
+  },
+  "schemaVersion": 1
+}

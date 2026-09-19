@@ -98,7 +98,22 @@ Copyright: `© 2026 <your name>` (fill in App Store Connect; it is not stored in
 
 ## Notes for App Review
 
-> The app works fully offline and without an iCloud account. To see it with content, tap "New Project" and enter any name: a template project appears immediately. The optional AI step happens outside the app: the user exports a JSON file from the Project menu, edits it with any assistant, and imports it back. There is no login, no account and no server. The widget shows the next stage of the active project once a project exists.
+Paste this into App Review Information → Notes. It is also the reply to a Guideline 2.1 "Information Needed" request (points 2 to 6; point 1 is the screen recording).
+
+> PURPOSE AND AUDIENCE
+> Project Tracker is a personal deadline tracker for projects that run through a fixed sequence of stages: university dissertations, final-year and capstone projects, theses, exam preparation, and smaller personal projects. Students receive their stages, deadlines and weightings scattered across handbooks and emails; the app puts them in one place and shows what is next, what is in progress and what is overdue, with a personal target date a few days before each official deadline, per-stage notes and PDFs, a reference library, optional daily reminders, a home-screen widget, and iCloud sync between the user's own iPhone, iPad and Mac. It is a single-user app: no accounts, no sharing with other users, no user-generated content visible to anyone else, no purchases.
+>
+> SETUP AND MAIN FEATURES
+> No login or account exists. On first launch tap "New Project", type any name and tap Create; a template project with stages, tasks and dates appears (dismiss the guide sheet with "Maybe Later"). Tick tasks in the "Next up" card; tap a stage to expand it, tick tasks, type notes, attach PDFs. The Library tab stores papers and links ("Add Item"). The gear button opens Settings: target buffer and per-stage daily reminders (the notification permission prompt appears only when the user taps Allow). The widget is added from the home screen like any widget; long-press it to choose a project. Optional: "Export for AI" saves the project as a JSON file the user may edit with any assistant of their choice and re-import with "Import Project JSON"; the app itself never contacts an AI service. A sample project file for testing the import is at https://raw.githubusercontent.com/lkavi/ProjectTracker/main/docs/app-store/sample-project.json (download it in Safari, then Project menu → Import Project JSON → choose it from Files). iCloud is optional: without it the app stores everything on the device.
+>
+> EXTERNAL SERVICES
+> None. The app has no server, no analytics, no advertising, no third-party SDKs and makes no network requests of its own. The only system service used is the user's own iCloud (iCloud Drive documents and key-value storage) to sync their data between their devices. Local notifications are scheduled on the device.
+>
+> REGIONAL DIFFERENCES
+> None. The app behaves identically in every region and is English-only.
+>
+> REGULATED INDUSTRY OR PROTECTED MATERIAL
+> Not applicable. The app is not in a regulated industry and contains no third-party or licensed content; all template text is original.
 
 ## Screenshots
 
