@@ -125,7 +125,7 @@ Apple asks most first submissions for a screen recording and a description. Noth
    xcrun xcresulttool export attachments --path build/demo.xcresult --output-path build/demo-attachments
    ```
 
-   The test (`DemoRecordingUITests.swift`) walks the app slowly and ends with a deliberate failure so the recording is kept; the `.mp4` is in the exported attachments. It replaces any TestFlight copy on the device with the development build.
+   The test (`DemoRecordingUITests.swift`) walks the app slowly and ends with a deliberate failure so the recording is kept; the `.mp4` is in the exported attachments. It replaces any TestFlight copy on the device with the development build. For a Mac recording run `DemoRecordingMacUITests` the same way with `-destination 'platform=macOS'` and no `CODE_SIGNING_ALLOWED=NO` (the runner must be signed); macOS records the whole display, so crop the result to the app window before sending it.
 2. ☐ In App Store Connect open the review message thread, click Reply, paste the *Notes for App Review* text from `listing.md`, attach the video, and send.
 3. ☐ Also paste the same text into App Information → App Review Information → Notes, so future submissions carry it.
 4. ☐ Click **Resubmit to App Review**.
