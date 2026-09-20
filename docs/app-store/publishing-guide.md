@@ -116,6 +116,16 @@ Then, on the app-level pages:
 Apple asks most first submissions for a screen recording and a description. Nothing is wrong with the app; answer once and it is kept on file.
 
 1. ☐ On a physical iPhone running the latest iOS, install the submitted build from TestFlight and record the screen (Control Center → Screen Recording). Follow the script in `listing.md` under *Notes for App Review*: launch → New Project → tick tasks → expand a stage and add a note → Library → Settings and reminders → Export / Import with the sample file → add and configure the widget. One to two minutes is enough. AirDrop the video to the Mac.
+   Hands-free alternative: with the iPhone paired to this Mac (Developer Mode on, unlocked, ideally on USB), let Xcode drive the walkthrough and record it:
+
+   ```bash
+   TEST_RUNNER_DEMO_RECORDING=1 xcodebuild test -project ProjectTracker.xcodeproj -scheme ProjectTracker \
+     -destination 'platform=iOS,id=<device udid>' -resultBundlePath build/demo.xcresult \
+     -only-testing:ProjectTrackerUITests/DemoRecordingUITests -allowProvisioningUpdates
+   xcrun xcresulttool export attachments --path build/demo.xcresult --output-path build/demo-attachments
+   ```
+
+   The test (`DemoRecordingUITests.swift`) walks the app slowly and ends with a deliberate failure so the recording is kept; the `.mp4` is in the exported attachments. It replaces any TestFlight copy on the device with the development build.
 2. ☐ In App Store Connect open the review message thread, click Reply, paste the *Notes for App Review* text from `listing.md`, attach the video, and send.
 3. ☐ Also paste the same text into App Information → App Review Information → Notes, so future submissions carry it.
 4. ☐ Click **Resubmit to App Review**.
