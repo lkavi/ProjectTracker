@@ -18,39 +18,44 @@ struct ResearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Library")
-                        .font(.largeTitle.bold())
-                    Text("\(items.count) reference\(items.count == 1 ? "" : "s")")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button { showingAdd = true } label: {
-                    Label("Add", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("add-reference-menu-button")
-            }
-            .padding(contentPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            #if os(macOS)
+            macHeader
+            #endif
 
             if items.isEmpty {
                 emptyState
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
+                        #if os(iOS)
+                        Text("\(items.count) reference\(items.count == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        #endif
                         ForEach($items) { $item in
                             ResearchItemCard(item: $item) { deleteItem(item) }
                         }
                     }
                     .padding(.horizontal, contentPadding)
+                    .padding(.top, listTopPadding)
                     .padding(.bottom, contentPadding)
                 }
             }
         }
         .background(Color.appWindowBackground)
+        #if os(iOS)
+        .navigationTitle("Library")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAdd = true } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add Reference")
+                .accessibilityIdentifier("add-reference-menu-button")
+            }
+        }
+        #endif
         .onChange(of: items) { scheduleSave() }
         .onDisappear { saveNow() }
         .onChange(of: scenePhase) { _, phase in
@@ -114,6 +119,36 @@ struct ResearchView: View {
         #endif
     }
 
+    private var listTopPadding: CGFloat {
+        #if os(macOS)
+        return 0
+        #else
+        return 8
+        #endif
+    }
+
+    #if os(macOS)
+    private var macHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Library")
+                    .font(.largeTitle.bold())
+                Text("\(items.count) reference\(items.count == 1 ? "" : "s")")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button { showingAdd = true } label: {
+                Label("Add", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("add-reference-menu-button")
+        }
+        .padding(contentPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    #endif
+
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "book.closed")
@@ -126,6 +161,7 @@ struct ResearchView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button("Add First Reference") { showingAdd = true }
+                .font(.subheadline.weight(.semibold))
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -215,22 +251,8 @@ struct ResearchItemCard: View {
             }
 
             // Notes
-            ZStack(alignment: .topLeading) {
-                if item.notes.isEmpty {
-                    Text("Add notes…")
-                        .font(.body).foregroundStyle(.tertiary)
-                        .padding(.horizontal, 12).padding(.vertical, 10)
-                        .allowsHitTesting(false)
-                }
-                TextEditor(text: $item.notes)
-                    .font(.body)
-                    .frame(minHeight: 60, maxHeight: 160)
-                    .scrollContentBackground(.hidden)
-            }
-            .padding(6)
-            .background(Color.appTextBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10), lineWidth: 1))
+            InlineNotesEditor(text: $item.notes, placeholder: "Add notes…",
+                              minHeight: 60, maxHeight: 160)
         }
         .padding(16)
         .background(Color.appControlBackground)

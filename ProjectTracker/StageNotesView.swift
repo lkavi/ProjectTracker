@@ -103,25 +103,12 @@ struct StageNotesView: View {
     // MARK: - Sub-views
 
     private var notesEditor: some View {
-        ZStack(alignment: .topLeading) {
-            if record.notes.isEmpty {
-                Text("Add notes for this stage…")
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .allowsHitTesting(false)
-            }
-            TextEditor(text: $record.notes)
-                .font(.body)
-                .frame(minHeight: 70, maxHeight: 180)
-                .scrollContentBackground(.hidden)
-                .onChange(of: record.notes) { scheduleSave() }
-        }
-        .padding(6)
-        .background(Color.appTextBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10), lineWidth: 1))
+        InlineNotesEditor(
+            text: $record.notes,
+            placeholder: "Add notes for this stage…",
+            onEdit: { scheduleSave() },
+            onCommit: { saveNow() }
+        )
     }
 
     private func fileRow(file: StageFile, isFinal: Bool) -> some View {

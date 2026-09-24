@@ -305,27 +305,50 @@ struct ContentView: View {
     // MARK: - Empty state (no projects yet)
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checklist")
-                .font(.system(size: 44))
-                .foregroundStyle(.tertiary)
-            Text("No projects yet")
-                .font(.title3.bold())
-            Text("Create a project from a template, then shape its stages by hand or with an AI assistant. Or import a project file you already have.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
-            HStack(spacing: 12) {
-                Button("New Project") { showNewProject = true }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("new-project-button")
-                Button("Import File…") { showImporter = true }
-                Button("Import from Clipboard") { importFromClipboard() }
+        ScrollView {
+            VStack(spacing: 22) {
+                VStack(spacing: 10) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.tertiary)
+                    Text("No projects yet")
+                        .font(.title2.bold())
+                    Text("Track a thesis, dissertation or any project as a set of dated stages. Start one of three ways:")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 28)
+
+                VStack(spacing: 12) {
+                    ActionCard(
+                        icon: "plus.circle.fill",
+                        title: "New project",
+                        subtitle: "Start from a template, then shape the stages by hand or with an AI assistant.",
+                        prominent: true
+                    ) { showNewProject = true }
+                        .accessibilityIdentifier("new-project-button")
+
+                    ActionCard(
+                        icon: "square.and.arrow.down",
+                        title: "Import a file",
+                        subtitle: "Open a project file (.json) you already have."
+                    ) { showImporter = true }
+                        .accessibilityIdentifier("import-file-card")
+
+                    ActionCard(
+                        icon: "doc.on.clipboard",
+                        title: "Paste from clipboard",
+                        subtitle: "Paste the JSON an AI assistant returned for you."
+                    ) { importFromClipboard() }
+                        .accessibilityIdentifier("import-clipboard-card")
+                }
+                .frame(maxWidth: 460)
             }
+            .frame(maxWidth: .infinity)
+            .padding(platformPadding)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
     }
 
     private var platformPadding: CGFloat {

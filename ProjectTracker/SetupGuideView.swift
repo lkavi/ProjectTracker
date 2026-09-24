@@ -32,20 +32,29 @@ struct SetupGuideView: View {
                         title: "Let an AI assistant tailor it",
                         detail: "Copy a ready-made prompt, paste it into ChatGPT, Claude or any assistant, and answer its questions about your stages and deadlines. Then copy its reply and import it here."
                     ) {
-                        HStack(spacing: 10) {
-                            Button {
-                                onCopyPrompt()
-                                copied = true
-                            } label: {
-                                Label(copied ? "Prompt Copied" : "Copy Prompt", systemImage: copied ? "checkmark" : "doc.on.doc")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("copy-prompt-button")
-                            Button("Import from Clipboard") {
-                                dismiss()
-                                onImportClipboard()
-                            }
+                        // Stacked on iOS so the two labels never wrap onto two
+                        // lines on a narrow phone; side by side on the Mac.
+                        let copyButton = Button {
+                            onCopyPrompt()
+                            copied = true
+                        } label: {
+                            Label(copied ? "Prompt Copied" : "Copy Prompt", systemImage: copied ? "checkmark" : "doc.on.doc")
                         }
+                        .font(.subheadline.weight(.semibold))
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("copy-prompt-button")
+
+                        let importButton = Button("Import from Clipboard") {
+                            dismiss()
+                            onImportClipboard()
+                        }
+                        .font(.subheadline.weight(.semibold))
+
+                        #if os(iOS)
+                        VStack(alignment: .leading, spacing: 8) { copyButton; importButton }
+                        #else
+                        HStack(spacing: 10) { copyButton; importButton }
+                        #endif
                     }
 
                     option(
