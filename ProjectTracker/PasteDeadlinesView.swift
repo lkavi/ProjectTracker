@@ -104,9 +104,9 @@ struct PasteDeadlinesView: View {
                         .accessibilityIdentifier("paste-mode-picker")
                     }
 
-                    Text(isUpdate
-                         ? "Paste the new deadlines email or list. Matching stages get the new dates and keep your tasks and ticks; new stages are added."
-                         : "Paste your deadlines email, a handbook page or a deadline table. Every line with a date becomes a stage; bullet points under a line become its tasks.")
+                    aiSection
+
+                    Text(instructions)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -140,7 +140,13 @@ struct PasteDeadlinesView: View {
                         .accessibilityIdentifier("paste-import-project-file-button")
                     }
 
-                    aiSection
+                    if let aiNote {
+                        Label(aiNote, systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("paste-ai-note")
+                    }
                 }
                 .padding()
             }
@@ -216,17 +222,37 @@ struct PasteDeadlinesView: View {
             .stroke(Color.primary.opacity(0.1), lineWidth: 1))
     }
 
+    private var instructions: String {
+        switch (willUseAI, isUpdate) {
+        case (true, true):
+            return "Paste the new deadlines email or list as it is. Matching stages get the new dates and keep your tasks and ticks; new stages are added."
+        case (true, false):
+            return "Paste your course email, a handbook page or a deadline table, exactly as it is. No tidying needed."
+        case (false, true):
+            return "Paste the new deadlines email or list. Matching stages get the new dates and keep your tasks and ticks; new stages are added."
+        case (false, false):
+            return "Paste your deadlines email, a handbook page or a deadline table. Every line with a date becomes a stage; bullet points under a line become its tasks."
+        }
+    }
+
+    /// The headline feature when the device has Apple Intelligence: on by
+    /// default, named plainly, and shown first so setup reads as one step.
     @ViewBuilder
     private var aiSection: some View {
         if aiAvailable {
             Toggle(isOn: $useAI) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Write tasks with Apple Intelligence")
-                        .font(.subheadline.weight(.semibold))
-                    Text("Runs on this device. Dates and weightings still come from your text.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "apple.intelligence")
+                        .font(.title3)
+                        .foregroundStyle(Color.accentColor)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Set up with Apple Intelligence")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Picks out every stage, date and weighting and writes the tasks for you. Private, on this device.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             .padding(12)
@@ -237,14 +263,6 @@ struct PasteDeadlinesView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-
-        if let aiNote {
-            Label(aiNote, systemImage: "exclamationmark.triangle")
-                .font(.footnote)
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("paste-ai-note")
         }
     }
 
@@ -262,8 +280,8 @@ struct PasteDeadlinesView: View {
                 } else {
                     ProgressView()
                         .controlSize(.large)
-                    Text(stagesDone > 0 ? "Reading your document… \(stagesDone) stages so far"
-                                        : "Reading your document…")
+                    Text(stagesDone > 0 ? "Setting up your stages… \(stagesDone) so far"
+                                        : "Setting up your stages…")
                         .font(.subheadline.weight(.semibold))
                         .monospacedDigit()
                 }
@@ -289,8 +307,10 @@ struct PasteDeadlinesView: View {
         let r = result
         let replaceNote = createsProject || isUpdate ? nil : "This replaces the current stages; you can tidy them first."
         if willUseAI && AIStagePlanner.mode(for: r.stages) == .extract {
-            let read = "This reads like an email or document. Apple Intelligence will pick out the stages and dates"
-            return isUpdate ? read + " and update the matching ones." : [read + ".", replaceNote].compactMap { $0 }.joined(separator: " ")
+            let spotted = r.stages.isEmpty ? "Ready." : "Ready, \(r.stages.count) date\(r.stages.count == 1 ? "" : "s") spotted."
+            let action = isUpdate ? "Apple Intelligence will update the matching stages and add new ones."
+                                  : "Apple Intelligence will set up the stages and tasks."
+            return [spotted, action, replaceNote].compactMap { $0 }.joined(separator: " ")
         }
         if r.stages.isEmpty { return "No lines with a date found." }
         if isUpdate {

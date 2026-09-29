@@ -445,8 +445,13 @@ struct AIStagePlannerTests {
         #expect(stages[2].tasks.map(\.title) == ["Prepare slides"])   // the stage title isn't a task
     }
 
-    @Test func aDeadlineTableOnlyNeedsTasksWritten() {
+    @Test func aDeadlineTableIsStillReadByTheModel() {
         let stages = DeadlineListParser.parse("Proposal\t17 Oct 2026\nFinal report\t15 Apr 2027\t70%").stages
+        #expect(AIStagePlanner.mode(for: stages) == .extract)
+    }
+
+    @Test func stagesWithTheUsersOwnTasksSkipTheModel() {
+        let stages = DeadlineListParser.parse("Proposal 17 Oct 2026\n- Pick a topic\n- Email supervisor").stages
         #expect(AIStagePlanner.mode(for: stages) == .writeTasks)
     }
 
@@ -467,8 +472,22 @@ struct AIStagePlannerTests {
             .init(title: "Research proposal", date: "17 October", weight: "", tasks: ["Write it", "Send it"]),
         ], today: september27)
         let merged = AIStagePlanner.union(extracted, parserStages: parser)
-        #expect(merged.map(\.title) == ["Research proposal", "Viva"])   // same date → not duplicated
+        // Same date → one stage, with the list row's exact title and the model's tasks.
+        #expect(merged.map(\.title) == ["Proposal", "Viva"])
         #expect(merged.map(\.deadline) == ["2026-10-17", "2027-06-03"])
+        #expect(merged[0].tasks.map(\.title) == ["Write it", "Send it"])
+    }
+
+    @Test func listRowDatesAndWeightsWinOverTheModel() {
+        let parser = DeadlineListParser.parse("Final report 1 April 2027 70%").stages
+        let extracted = AIStagePlanner.stages(from: [
+            .init(title: "Final report", date: "8 April", weight: "", tasks: ["Write it", "Submit it"]),
+        ], today: september27)
+        let merged = AIStagePlanner.union(extracted, parserStages: parser)
+        #expect(merged.count == 1)
+        #expect(merged[0].deadline == "2027-04-01")
+        #expect(merged[0].weight == "70%")
+        #expect(merged[0].tasks.count == 2)
     }
 
     /// "The week of 8 March" read on 27 September means next March, not the

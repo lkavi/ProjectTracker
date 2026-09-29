@@ -26,46 +26,41 @@ The name inside the app stays "Project Tracker"; Apple allows a longer store nam
 
 ## Promotional text (170 max, editable without a new build)
 
-> Built for dissertations, final-year projects and personal goals with real deadlines. See what is next, what is running and what is overdue on iPhone, iPad and Mac.
+> Paste your course's deadlines email. Apple Intelligence turns it into a plan with every stage, date and task. Then just tick things off.
 
 ## Description (4,000 max)
 
-Project Tracker is a university project, academic project and personal project tracker for one person and one goal at a time: a dissertation, a thesis, a final-year or capstone project, a certification, or any plan that runs through a fixed set of stages with real dates.
+Project Tracker keeps a thesis, dissertation, final-year project or personal project on track, one stage at a time.
 
-Lay out the stages you actually have to get through, each with its deadline, its weighting and a short checklist. The app tells you what is next, what is running and what is overdue, and shows a personal target a few days ahead of the official date so you finish with room to spare.
+SET UP IN SECONDS
+Paste your course's deadlines email or handbook page as it is. Apple Intelligence picks out every stage, date and weighting and writes the tasks, privately on your device. No Apple Intelligence? Each line with a date still becomes a stage, or start from a template.
 
-WHAT YOU GET
-• Templates for dissertations, final-year projects, PhD years, exams and personal projects
-• Stages with deadlines, weightings and task checklists, editable in the app
-• Paste a deadline list from your handbook to get draft stages, or share a template with coursemates
-• A "next up" card and an urgent banner for anything due within three days
-• Your own target buffer: aim 1 to 7 days ahead of every deadline
-• Notes plus draft and final PDFs attached to each stage
-• A reference library for papers, links and notes
-• Daily reminders per stage, on the days and time you choose
-• A home-screen widget in three sizes that you can pin to any project
-• Several projects side by side
-• iCloud sync between iPhone, iPad and Mac
+STAY ON TRACK
+• See what's next, what's in progress and what's overdue
+• Tick off tasks; a stage is done when its tasks are
+• Set a personal target a few days before each deadline
+• Get reminders on the days and times you choose
+• Check progress from a home-screen widget
 
-MAKE IT YOURS IN MINUTES
-Pick a template and your final deadline, then shape the stages by hand, or copy the built-in prompt into an AI assistant, answer its questions and paste the reply back. A preview shows exactly what changes, and every task you have already ticked off is kept.
+WHEN DEADLINES CHANGE
+Paste the new email. Dates update, new stages are added, and your ticked tasks stay ticked. You can also edit any stage by hand.
 
-MADE FOR
-• Undergraduate and postgraduate students on a dissertation, thesis, final-year or capstone project
-• Researchers running a small study with dated milestones
-• Anyone with a personal project that breaks into ordered stages: a certification, a portfolio, a launch
+ALSO
+• Notes and PDFs for each stage
+• A library for papers and links
+• Several projects at once
+• iCloud sync across iPhone, iPad and Mac
 
-PRIVATE BY DESIGN
-No account, no analytics, no server. Your projects live in your own iCloud Drive and on your own devices, and the app works fully offline.
+PRIVATE
+No account, no ads, no tracking. Your projects stay in your own iCloud.
 
 ## What's New (version 1.2)
 
-> • Paste your deadlines email, a handbook page or a deadline table and get a project with dated stages
-> • On devices with Apple Intelligence, tasks are written for each stage and plain-prose briefs are read too, all on your device
-> • Deadlines changed? Paste the new list: dates and weightings update, new stages are added, and your ticked tasks stay ticked
-> • Edit any stage from its card: title, deadline, weighting and tasks
-> • New template for the University of Westminster / IIT Sri Lanka final-year project
-> • A cleaner start screen, tighter stage cards and a re-centred icon
+> • Set up in seconds: paste your deadlines email and Apple Intelligence builds the stages, dates and tasks
+> • Deadlines changed? Paste the new email to update them. Your progress is kept
+> • Edit any stage from its card
+> • New template for Westminster / IIT final-year projects
+> • Cleaner start screen and stage cards
 
 ## What's New (version 1.1)
 

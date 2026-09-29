@@ -3,14 +3,17 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     let stages: [ProjectStage]
+    /// Finished stages show "Done" instead of how overdue their deadline is.
+    var doneStageIDs: Set<UUID> = []
     @State private var prefs: [StageNotificationPref]
     @State private var bufferDays: Int = ProgressStore.loadBufferDays()
     @State private var authStatus: UNAuthorizationStatus = .notDetermined
     @State private var cloudStatus: CloudContainer.SyncStatus = CloudContainer.status
     @Environment(\.dismiss) var dismiss
 
-    init(stages: [ProjectStage]) {
+    init(stages: [ProjectStage], doneStageIDs: Set<UUID> = []) {
         self.stages = stages
+        self.doneStageIDs = doneStageIDs
         _prefs = State(initialValue: NotificationStore.load(for: stages))
     }
 
@@ -53,7 +56,8 @@ struct NotificationSettingsView: View {
                     VStack(spacing: 10) {
                         ForEach($prefs) { $pref in
                             if let index = stages.firstIndex(where: { $0.id == pref.id }) {
-                                StageNotifRowView(pref: $pref, stage: stages[index], number: index + 1)
+                                StageNotifRowView(pref: $pref, stage: stages[index], number: index + 1,
+                                                  isDone: doneStageIDs.contains(pref.id))
                             }
                         }
                     }
@@ -283,6 +287,7 @@ struct StageNotifRowView: View {
     @Binding var pref: StageNotificationPref
     let stage: ProjectStage
     let number: Int
+    var isDone = false
 
     // Mon → Sun ordering (Calendar weekday: 1=Sun … 7=Sat)
     private let weekdayOrder:  [Int]    = [2, 3, 4, 5, 6, 7, 1]
@@ -299,7 +304,7 @@ struct StageNotifRowView: View {
                     Text(stage.title)
                         .font(.callout.bold())
                     Spacer()
-                    Text(stage.dueText())
+                    Text(isDone ? "Done" : stage.dueText())
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

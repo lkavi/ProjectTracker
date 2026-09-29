@@ -59,8 +59,10 @@ struct SetupGuideView: View {
 
                     option(
                         number: 2,
-                        title: "Paste your deadlines",
-                        detail: "Paste the deadlines email, handbook page or table from your course. Each line with a date becomes a stage. With Apple Intelligence, tasks are written for you on this device."
+                        title: AIStagePlanner.isAvailable ? "Set up with Apple Intelligence" : "Paste your deadlines",
+                        detail: AIStagePlanner.isAvailable
+                            ? "Paste the deadlines email, handbook page or table from your course, as it is. Apple Intelligence picks out the stages, dates and weightings and writes the tasks, on this device."
+                            : "Paste the deadlines email, handbook page or table from your course. Each line with a date becomes a stage."
                     ) {
                         Button("Paste Deadlines") {
                             dismiss()

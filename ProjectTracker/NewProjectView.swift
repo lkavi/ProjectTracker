@@ -25,11 +25,12 @@ struct NewProjectView: View {
                             dismiss()
                             onPasteInstead()
                         } label: {
-                            Label("Paste your deadlines instead", systemImage: "doc.on.clipboard")
+                            Label(AIStagePlanner.isAvailable ? "Set up with Apple Intelligence instead" : "Paste your deadlines instead",
+                                  systemImage: AIStagePlanner.isAvailable ? "apple.intelligence" : "doc.on.clipboard")
                         }
                         .accessibilityIdentifier("new-project-paste-instead-button")
                     } footer: {
-                        Text("Have your course's deadlines email or handbook page? Paste it and the stages are built from it.")
+                        Text("Have your course's deadlines email or handbook page? Paste it as it is and the stages are built from it.")
                     }
                 }
 

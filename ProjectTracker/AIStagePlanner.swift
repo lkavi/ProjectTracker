@@ -73,12 +73,12 @@ enum AIStagePlanner {
 
     /// How the model is used for a given parser draft.
     enum Mode: Equatable {
-        /// The parser found a real deadline list: keep its stages, dates and
-        /// weightings exactly and only write tasks.
+        /// Every stage already has the user's own tasks: nothing to ask the
+        /// model, the parser's stages are used as they are.
         case writeTasks
-        /// The text is prose (an email or handbook paragraph): the model reads
-        /// the stages out of it, and any list-like rows the parser found are
-        /// added back so nothing reliable is lost.
+        /// The default: the model reads the whole text for stages, dates and
+        /// tasks. Rows the parser read from a deadline list keep their exact
+        /// title, date and weighting, and any the model missed are added back.
         case extract
     }
 
@@ -91,8 +91,7 @@ enum AIStagePlanner {
     }
 
     static func mode(for draft: [ProjectStage]) -> Mode {
-        let listLike = draft.filter(isListLike).count
-        return listLike > 0 && listLike * 10 >= draft.count * 7 ? .writeTasks : .extract
+        !draft.isEmpty && !draft.contains(where: DeadlineListParser.hasOnlyPlaceholderTask) ? .writeTasks : .extract
     }
 
     /// Stages for the pasted `document`. `draft` is what the parser found.
@@ -269,16 +268,29 @@ enum AIStagePlanner {
             .map(\.element)
     }
 
-    /// Adds list-like parser stages the model didn't return (matched by date or
-    /// title), so a deadline the parser read reliably is never dropped.
+    /// Combines what the model read with the list rows the parser read.
+    /// A parser row is exact where the model can slip, so a matched stage takes
+    /// the row's title, date and weighting (and its tasks, if the user wrote
+    /// some) while keeping the model's tasks otherwise. Rows the model missed
+    /// are added, so a deadline the parser read reliably is never dropped.
     static func union(_ extracted: [ProjectStage], parserStages: [ProjectStage]) -> [ProjectStage] {
-        let missing = parserStages.filter { p in
-            !extracted.contains { e in
-                (p.deadline != nil && e.deadline == p.deadline) || sameTitle(e.title, p.title)
-            }
+        var result = extracted
+        var usedExtracted = Set<Int>()
+        var missing: [ProjectStage] = []
+        for row in parserStages {
+            let available = result.indices.filter { !usedExtracted.contains($0) }
+            guard let i = available.first(where: { sameTitle(result[$0].title, row.title) })
+                    ?? available.first(where: { row.deadline != nil && result[$0].deadline == row.deadline })
+            else { missing.append(row); continue }
+            usedExtracted.insert(i)
+            var stage = result[i]
+            stage.title = row.title
+            if row.deadline != nil { stage.deadline = row.deadline }
+            if row.weight != nil { stage.weight = row.weight }
+            if !DeadlineListParser.hasOnlyPlaceholderTask(row) { stage.tasks = row.tasks }
+            result[i] = stage
         }
-        guard !missing.isEmpty else { return extracted }
-        return (extracted + missing).enumerated()
+        return (result + missing).enumerated()
             .sorted { a, b in
                 let da = a.element.deadlineDate ?? .distantFuture
                 let db = b.element.deadlineDate ?? .distantFuture

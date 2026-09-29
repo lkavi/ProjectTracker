@@ -113,7 +113,9 @@ struct ContentView: View {
                 bufferDays = ProgressStore.loadBufferDays()
                 ProjectStore.refreshWidgetSnapshots()
             }) {
-                NotificationSettingsView(stages: active?.definition.stages ?? [])
+                NotificationSettingsView(stages: active?.definition.stages ?? [],
+                                         doneStageIDs: Set((active?.definition.stages ?? [])
+                                             .filter { active?.isStageDone($0) == true }.map(\.id)))
             }
             .sheet(isPresented: $showNewProject) {
                 NewProjectView(onPasteInstead: { afterDismissal { showPasteNewProject = true } }) { name, template, start, end in
@@ -321,6 +323,20 @@ struct ContentView: View {
 
     // MARK: - Empty state (no projects yet)
 
+    private var aiSetupAvailable: Bool { AIStagePlanner.isAvailable }
+
+    private var pasteCard: some View {
+        ActionCard(
+            icon: aiSetupAvailable ? "apple.intelligence" : "doc.on.clipboard",
+            title: aiSetupAvailable ? "Set up in seconds" : "Paste your deadlines",
+            subtitle: aiSetupAvailable
+                ? "Paste your course's deadlines email or handbook page. Apple Intelligence builds the stages, dates and tasks."
+                : "Paste the deadlines email or handbook page from your course and get the stages from it.",
+            prominent: aiSetupAvailable
+        ) { showPasteNewProject = true }
+            .accessibilityIdentifier("paste-deadlines-card")
+    }
+
     private var emptyState: some View {
         ScrollView {
             VStack(spacing: 22) {
@@ -339,20 +355,18 @@ struct ContentView: View {
                 .padding(.top, 28)
 
                 VStack(spacing: 12) {
+                    // With Apple Intelligence, pasting is the quickest start, so it leads.
+                    if aiSetupAvailable { pasteCard }
+
                     ActionCard(
                         icon: "plus.circle.fill",
                         title: "New project",
                         subtitle: "Start from a template, then shape the stages by hand or with an AI assistant.",
-                        prominent: true
+                        prominent: !aiSetupAvailable
                     ) { showNewProject = true }
                         .accessibilityIdentifier("new-project-button")
 
-                    ActionCard(
-                        icon: "doc.on.clipboard",
-                        title: "Paste your deadlines",
-                        subtitle: "Paste the deadlines email or handbook page from your course and get the stages from it."
-                    ) { showPasteNewProject = true }
-                        .accessibilityIdentifier("paste-deadlines-card")
+                    if !aiSetupAvailable { pasteCard }
 
                     ActionCard(
                         icon: "square.and.arrow.down",
