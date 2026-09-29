@@ -58,6 +58,15 @@ MADE FOR
 PRIVATE BY DESIGN
 No account, no analytics, no server. Your projects live in your own iCloud Drive and on your own devices, and the app works fully offline.
 
+## What's New (version 1.2)
+
+> • Paste your deadlines email, a handbook page or a deadline table and get a project with dated stages
+> • On devices with Apple Intelligence, tasks are written for each stage and plain-prose briefs are read too, all on your device
+> • Deadlines changed? Paste the new list: dates and weightings update, new stages are added, and your ticked tasks stay ticked
+> • Edit any stage from its card: title, deadline, weighting and tasks
+> • New template for the University of Westminster / IIT Sri Lanka final-year project
+> • A cleaner start screen, tighter stage cards and a re-centred icon
+
 ## What's New (version 1.1)
 
 > • Templates for final-year projects, dissertations, PhD years, exams and personal projects, with deadlines spread between your start date and final deadline
