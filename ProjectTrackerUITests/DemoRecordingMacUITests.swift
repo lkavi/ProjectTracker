@@ -93,7 +93,7 @@ final class DemoRecordingMacUITests: XCTestCase {
 
         // 7. Paste a deadline list and review the draft stages
         clickIfPresent(byID("project-menu"), then: 1)
-        clickIfPresent(app.menuItems["Paste Deadline List…"], then: 1.5)
+        clickIfPresent(app.menuItems["Update Deadlines…"], then: 1.5)
         let list = app.textViews["deadline-list-field"]
         if list.waitForExistence(timeout: 5) {
             list.click(); pause(0.4)

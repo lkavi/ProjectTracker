@@ -163,6 +163,81 @@ final class ProjectTrackerUITests: XCTestCase {
         XCTAssertEqual(progressSummary.label, "0 of 2 stages done")
     }
 
+    /// Pasting an updated list into an existing project moves the matching
+    /// stage's date, adds the new one, and keeps ticked progress.
+    func testPastingAnUpdateKeepsProgressAndAddsStages() {
+        createProject(named: "Thesis")
+        completeFirstStage()
+        XCTAssertEqual(progressSummary.label, "1 of 7 stages done")
+
+        app.buttons["project-menu"].tap()
+        let update = element(labeled: "Update Deadlines…")
+        XCTAssertTrue(update.waitForExistence(timeout: 5), "menu item")
+        update.tap()
+
+        let field = app.textViews["deadline-list-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "paste field")
+        field.tap()
+        field.typeText("Proposal & Scope - 1 December 2026\nEthics form - 5 December 2026")
+        let summary = app.staticTexts["deadline-list-summary"].label
+        XCTAssertTrue(summary.contains("1 new stage"), summary)
+        XCTAssertTrue(summary.contains("6 stages aren't in the pasted text"), summary)
+
+        app.buttons["review-stages-button"].tap()
+        let save = app.buttons["save-stages-button"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5), "review screen")
+        XCTAssertEqual(save.label, "Update")
+        save.tap()
+
+        XCTAssertTrue(progressSummary.waitForExistence(timeout: 5), "back on the project")
+        XCTAssertEqual(progressSummary.label, "1 of 8 stages done")
+    }
+
+    /// A stage card's Edit button opens that one stage; renaming it sticks.
+    func testEditingAStageFromItsCard() {
+        createProject(named: "Thesis")
+
+        // The current stage's card starts expanded, so its Edit button is on screen.
+        let edit = app.buttons["edit-stage-button"].firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 5), "edit button")
+        edit.tap()
+
+        let title = app.textFields["Title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5), "stage editor")
+        let original = title.value as? String ?? ""
+        title.tap()
+        title.typeText(" v2")
+        app.buttons["save-stage-button"].tap()
+
+        XCTAssertTrue(app.staticTexts["\(original) v2"].firstMatch.waitForExistence(timeout: 5), "renamed card")
+        XCTAssertEqual(progressSummary.label, "0 of 7 stages done")
+    }
+
+    /// From the empty state: paste a course email (greeting, a dated list,
+    /// sign-off) and get a new project with just the dated stages.
+    func testPastingADeadlinesEmailCreatesAProject() {
+        app.buttons["paste-deadlines-card"].tap()
+
+        let name = app.textFields["paste-project-name-field"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Final Year Project\n")
+
+        let field = app.textViews["deadline-list-field"]
+        field.tap()
+        field.typeText("Hi all, please note the deadlines below.\nProposal - 17 October 2026\nFinal report - 1 April 2027 - 70%\nRegards, Module Leader")
+        XCTAssertTrue(app.staticTexts["deadline-list-summary"].label.hasPrefix("Found 2 stages"))
+
+        app.buttons["review-stages-button"].tap()
+        let create = app.buttons["save-stages-button"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        create.tap()
+
+        XCTAssertTrue(progressSummary.waitForExistence(timeout: 5))
+        XCTAssertEqual(progressSummary.label, "0 of 2 stages done")
+        XCTAssertTrue(app.navigationBars["Final Year Project"].exists)
+    }
+
     func testLibraryAddsReference() {
         let tab = app.tabBars.buttons["Library"]
         (tab.exists ? tab : element(labeled: "Library")).tap()

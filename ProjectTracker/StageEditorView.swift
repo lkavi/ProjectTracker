@@ -5,6 +5,8 @@ import SwiftUI
 /// step and the stage editor sheet can wrap it directly.
 struct StageListEditor: View {
     @Binding var stages: [ProjectStage]
+    /// Optional note per stage, e.g. what an update changed ("Moved from 2 Jul").
+    var notes: [UUID: String] = [:]
 
     /// Empty task titles are dropped; blank stage titles get a placeholder.
     static func cleaned(_ stages: [ProjectStage]) -> [ProjectStage] {
@@ -35,6 +37,11 @@ struct StageListEditor: View {
                             Text(subtitle(for: stage))
                                 .font(.caption)
                                 .foregroundStyle(stage.tasks.isEmpty ? .red : .secondary)
+                            if let note = notes[stage.id] {
+                                Text(note)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(note == StageUpdater.notInPasteNote ? Color.orange : Color.accentColor)
+                            }
                         }
                     }
                     .contextMenu {
@@ -113,14 +120,61 @@ struct StageEditorView: View {
 
 // MARK: - One stage
 
+/// Edits a single stage from its card: title, deadline, weighting, tasks.
+/// Ids are kept, so ticked tasks stay ticked.
+struct SingleStageEditorView: View {
+    @State private var stage: ProjectStage
+    let onSave: (ProjectStage) -> Void
+    let onDelete: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    init(stage: ProjectStage, onSave: @escaping (ProjectStage) -> Void, onDelete: @escaping () -> Void) {
+        _stage = State(initialValue: stage)
+        self.onSave = onSave
+        self.onDelete = onDelete
+    }
+
+    var body: some View {
+        NavigationStack {
+            StageDetailEditor(stage: $stage, onDelete: {
+                dismiss()
+                onDelete()
+            })
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let cleaned = StageListEditor.cleaned([stage]).first { onSave(cleaned) }
+                        dismiss()
+                    }
+                    .disabled(!StageListEditor.isValid([stage]))
+                    .accessibilityIdentifier("save-stage-button")
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 480, minHeight: 520)
+        #endif
+    }
+}
+
 struct StageDetailEditor: View {
     @Binding var stage: ProjectStage
+    /// Shows a "Delete Stage" button at the bottom when set.
+    var onDelete: (() -> Void)? = nil
     @State private var hasDeadline: Bool
     @State private var deadline: Date
     @State private var weight: String
+    @State private var confirmDelete = false
 
-    init(stage: Binding<ProjectStage>) {
+    init(stage: Binding<ProjectStage>, onDelete: (() -> Void)? = nil) {
         _stage = stage
+        self.onDelete = onDelete
         _hasDeadline = State(initialValue: stage.wrappedValue.deadlineDate != nil)
         _deadline = State(initialValue: stage.wrappedValue.deadlineDate ?? Date())
         _weight = State(initialValue: stage.wrappedValue.weight ?? "")
@@ -164,10 +218,23 @@ struct StageDetailEditor: View {
             } footer: {
                 Text("A stage counts as done when every task is ticked. Keep tasks short and specific.")
             }
+
+            if onDelete != nil {
+                Section {
+                    Button("Delete Stage", role: .destructive) { confirmDelete = true }
+                        .accessibilityIdentifier("delete-stage-button")
+                }
+            }
         }
         #if os(macOS)
         .formStyle(.grouped)
         #endif
+        .confirmationDialog("Delete \"\(stage.title.isEmpty ? "this stage" : stage.title)\"?",
+                            isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete Stage", role: .destructive) { onDelete?() }
+        } message: {
+            Text("Its tasks and ticks are removed. Notes and PDFs stay in iCloud Drive.")
+        }
         .navigationTitle(stage.title.isEmpty ? "Stage" : stage.title)
         .onChange(of: hasDeadline) { _, on in
             stage.deadline = on ? Self.string(from: deadline) : nil

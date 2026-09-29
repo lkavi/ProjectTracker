@@ -59,8 +59,8 @@ struct SetupGuideView: View {
 
                     option(
                         number: 2,
-                        title: "Paste your deadline list",
-                        detail: "Copy the deadline table or list from your handbook and paste it. Each line with a date becomes a stage; bullet points under it become tasks. No AI involved."
+                        title: "Paste your deadlines",
+                        detail: "Paste the deadlines email, handbook page or table from your course. Each line with a date becomes a stage. With Apple Intelligence, tasks are written for you on this device."
                     ) {
                         Button("Paste Deadlines") {
                             dismiss()

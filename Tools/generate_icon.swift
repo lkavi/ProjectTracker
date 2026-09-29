@@ -28,7 +28,11 @@ func circle(_ x: CGFloat, _ y: CGFloat, _ r: CGFloat) -> CGRect {
 /// accent dot, an upcoming hollow node, and a short label bar beside each.
 func drawMilestones(_ ctx: CGContext, in r: CGRect, _ p: Palette) {
     let s = r.width
-    let x = r.minX + s * 0.34
+    // Node column. Everything (connector, nodes, checkmark, bars) derives from
+    // this x, so it also sets the horizontal centring: the content spans from
+    // (x - nodeR) to the end of the widest bar, and this value balances the
+    // left and right margins so the timeline reads as centred.
+    let x = r.minX + s * 0.275
     let ys = [r.minY + s * 0.735, r.minY + s * 0.50, r.minY + s * 0.265]   // top, middle, bottom
     let nodeR = s * 0.082
     let lw = s * 0.034

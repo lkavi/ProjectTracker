@@ -42,7 +42,10 @@ struct ContentView: View {
     @State private var showNewProject = false
     @State private var showSetupGuide = false
     @State private var showStageEditor = false
-    @State private var showPasteDeadlines = false
+    @State private var editingStage: ProjectStage?
+    /// Set to open the paste sheet; says whether it starts in update or replace mode.
+    @State private var pasteMode: PasteMode?
+    @State private var showPasteNewProject = false
     @State private var pendingImport: ProjectStore.ImportSummary?
     @State private var inboxItem: URL?
     @State private var showRename = false
@@ -113,7 +116,7 @@ struct ContentView: View {
                 NotificationSettingsView(stages: active?.definition.stages ?? [])
             }
             .sheet(isPresented: $showNewProject) {
-                NewProjectView { name, template, start, end in
+                NewProjectView(onPasteInstead: { afterDismissal { showPasteNewProject = true } }) { name, template, start, end in
                     createProject(named: name, template: template, start: start, end: end)
                 }
             }
@@ -122,7 +125,7 @@ struct ContentView: View {
                     projectName: active?.definition.name ?? "your project",
                     onCopyPrompt: { copyPrompt() },
                     onImportClipboard: { afterDismissal { importFromClipboard() } },
-                    onPasteDeadlines: { afterDismissal { showPasteDeadlines = true } },
+                    onPasteDeadlines: { afterDismissal { pasteMode = .replace } },
                     onEditStages: { afterDismissal { showStageEditor = true } }
                 )
             }
@@ -131,8 +134,22 @@ struct ContentView: View {
                     StageEditorView(stages: project.definition.stages) { applyStages($0) }
                 }
             }
-            .sheet(isPresented: $showPasteDeadlines) {
-                PasteDeadlinesView { applyStages($0) }
+            .sheet(item: $editingStage) { stage in
+                SingleStageEditorView(stage: stage,
+                                      onSave: { replaceStage($0) },
+                                      onDelete: { removeStage(stage.id) })
+            }
+            .sheet(item: $pasteMode) { mode in
+                PasteDeadlinesView(existingStages: active?.definition.stages ?? [],
+                                   updatesByDefault: mode == .update,
+                                   onImportProjectFile: importPastedProjectFile) { _, stages in
+                    applyStages(stages)
+                }
+            }
+            .sheet(isPresented: $showPasteNewProject) {
+                PasteDeadlinesView(createsProject: true, onImportProjectFile: importPastedProjectFile) { name, stages in
+                    createProject(named: name, stages: stages)
+                }
             }
             .sheet(item: $pendingImport, onDismiss: { finishInboxItem() }) { summary in
                 ImportPreviewView(summary: summary) { commitImport(summary.project) }
@@ -292,7 +309,7 @@ struct ContentView: View {
                                     else { expandedStages.remove(stage.id) }
                                 }
                             ),
-                            onEdit: { showStageEditor = true }
+                            onEdit: { editingStage = stage }
                         )
                     }
                 }
@@ -331,18 +348,18 @@ struct ContentView: View {
                         .accessibilityIdentifier("new-project-button")
 
                     ActionCard(
+                        icon: "doc.on.clipboard",
+                        title: "Paste your deadlines",
+                        subtitle: "Paste the deadlines email or handbook page from your course and get the stages from it."
+                    ) { showPasteNewProject = true }
+                        .accessibilityIdentifier("paste-deadlines-card")
+
+                    ActionCard(
                         icon: "square.and.arrow.down",
                         title: "Import a file",
                         subtitle: "Open a project file (.json) you already have."
                     ) { showImporter = true }
                         .accessibilityIdentifier("import-file-card")
-
-                    ActionCard(
-                        icon: "doc.on.clipboard",
-                        title: "Paste from clipboard",
-                        subtitle: "Paste the JSON an AI assistant returned for you."
-                    ) { importFromClipboard() }
-                        .accessibilityIdentifier("import-clipboard-card")
                 }
                 .frame(maxWidth: 460)
             }
@@ -451,8 +468,8 @@ struct ContentView: View {
             Button { showStageEditor = true } label: {
                 Label("Edit Stages…", systemImage: "list.bullet")
             }
-            Button { showPasteDeadlines = true } label: {
-                Label("Paste Deadline List…", systemImage: "text.alignleft")
+            Button { pasteMode = .update } label: {
+                Label("Update Deadlines…", systemImage: "arrow.triangle.2.circlepath")
             }
             Divider()
             Button { copyPrompt() } label: {
@@ -656,6 +673,20 @@ struct ContentView: View {
         ProjectStore.save(project)
     }
 
+    /// A project built from pasted, reviewed stages. No setup guide afterwards:
+    /// the stages are already the user's real ones.
+    private func createProject(named name: String, stages: [ProjectStage]) {
+        let project = ProjectStore.create(named: name, stages: stages)
+        projects.append(project)
+        setActive(project.id)
+    }
+
+    /// Someone pasted a project file (e.g. an AI assistant's reply) into the
+    /// deadlines box: show the usual import preview once that sheet is gone.
+    private func importPastedProjectFile(_ text: String) {
+        afterDismissal { previewImport(Data(text.utf8)) }
+    }
+
     private func createProject(named name: String, template: ProjectTemplate, start: Date, end: Date) {
         let project = ProjectStore.create(named: name, template: template, start: start, end: end)
         projects.append(project)
@@ -716,6 +747,26 @@ struct ContentView: View {
 
     /// Replaces the active project's stages (from the editor or a pasted
     /// list). Progress is kept for task ids that still exist.
+    /// Saves one stage edited from its card. Its id is kept, so ticks on tasks
+    /// that still exist survive; ticks on deleted tasks are dropped.
+    private func replaceStage(_ stage: ProjectStage) {
+        guard let project = active,
+              let index = project.definition.stages.firstIndex(where: { $0.id == stage.id }) else { return }
+        var stages = project.definition.stages
+        stages[index] = stage
+        applyStages(stages)
+    }
+
+    private func removeStage(_ id: UUID) {
+        guard let project = active else { return }
+        let remaining = project.definition.stages.filter { $0.id != id }
+        guard !remaining.isEmpty else {
+            showInfo("A project needs at least one stage.")
+            return
+        }
+        applyStages(remaining)
+    }
+
     private func applyStages(_ stages: [ProjectStage]) {
         mutateActive {
             $0.definition.stages = stages
@@ -820,4 +871,11 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+}
+
+/// How the paste sheet starts: merging into the project's stages (from the
+/// menu) or replacing a fresh template (from the setup guide).
+private enum PasteMode: Identifiable {
+    case update, replace
+    var id: Self { self }
 }

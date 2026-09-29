@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Name, template and the two dates that stretch the template's deadlines.
 struct NewProjectView: View {
+    /// Switches to building the project from a pasted deadlines email instead.
+    var onPasteInstead: (() -> Void)? = nil
     let onCreate: (String, ProjectTemplate, Date, Date) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -17,6 +19,20 @@ struct NewProjectView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let onPasteInstead {
+                    Section {
+                        Button {
+                            dismiss()
+                            onPasteInstead()
+                        } label: {
+                            Label("Paste your deadlines instead", systemImage: "doc.on.clipboard")
+                        }
+                        .accessibilityIdentifier("new-project-paste-instead-button")
+                    } footer: {
+                        Text("Have your course's deadlines email or handbook page? Paste it and the stages are built from it.")
+                    }
+                }
+
                 Section("Name") {
                     TextField("e.g. MSc Dissertation", text: $name)
                         .accessibilityIdentifier("project-name-field")

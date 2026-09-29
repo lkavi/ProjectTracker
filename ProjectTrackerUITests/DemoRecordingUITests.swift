@@ -103,7 +103,7 @@ final class DemoRecordingUITests: XCTestCase {
 
         // 7. Paste a deadline list and review the draft stages
         tapIfPresent(app.buttons["project-menu"], then: 1)
-        tapIfPresent(element(labeled: "Paste Deadline List…"), then: 1.5)
+        tapIfPresent(element(labeled: "Update Deadlines…"), then: 1.5)
         let list = app.textViews["deadline-list-field"]
         if list.waitForExistence(timeout: 5) {
             list.tap(); pause(0.4)

@@ -29,7 +29,13 @@ enum DeadlineListParser {
             let detectLine = line.replacingOccurrences(of: #"(?i)\b(due|deadline)\b"#, with: " ",
                                                        options: .regularExpression)
             let range = NSRange(detectLine.startIndex..., in: detectLine)
-            let match = detector?.matches(in: detectLine, options: [], range: range).first { $0.date != nil }
+            let match = detector?.matches(in: detectLine, options: [], range: range).first { m in
+                guard m.date != nil, let r = Range(m.range, in: detectLine) else { return false }
+                // A real deadline names a day or month number ("2 July 2026",
+                // "17/10"). A bare weekday ("fall on a Thursday") or "tomorrow"
+                // is a relative date the detector resolves to next week.
+                return detectLine[r].contains(where: \.isNumber)
+            }
 
             if let match, let date = match.date, !(indented && !stages.isEmpty && isBullet(line)) {
                 var rest = (detectLine as NSString).replacingCharacters(in: match.range, with: " ")
@@ -39,6 +45,12 @@ enum DeadlineListParser {
                     rest = (rest as NSString).replacingCharacters(in: w.range, with: " ")
                 }
                 var title = cleanTitle(rest)
+                // A whole sentence that happens to mention a date is prose from
+                // an email or handbook, not a row in a deadline list.
+                if title.count > maxTitleLength {
+                    skipped += 1
+                    continue
+                }
                 if title.isEmpty { title = "Stage \(stages.count + 1)" }
                 stages.append(ProjectStage(title: title, weight: weight,
                                            deadline: formatter.string(from: date), tasks: []))
@@ -62,12 +74,26 @@ enum DeadlineListParser {
 
         // The importer and editor require at least one task per stage.
         for i in stages.indices where stages[i].tasks.isEmpty {
-            stages[i].tasks = [ProjectTask(title: "Finish \(stages[i].title)")]
+            stages[i].tasks = [ProjectTask(title: placeholderTaskTitle(for: stages[i].title))]
         }
         return Result(stages: stages, skippedLines: skipped)
     }
 
+    /// The stand-in task a stage gets when the pasted text lists none.
+    static func placeholderTaskTitle(for stageTitle: String) -> String {
+        "Finish \(stageTitle)"
+    }
+
+    /// True when a stage only has the stand-in task, i.e. the pasted text gave
+    /// no tasks for it and something smarter may fill them in.
+    static func hasOnlyPlaceholderTask(_ stage: ProjectStage) -> Bool {
+        stage.tasks.count == 1 && stage.tasks[0].title == placeholderTaskTitle(for: stage.title)
+    }
+
     // MARK: - Pieces
+
+    /// Longest title kept as a stage; longer dated lines are treated as prose.
+    static let maxTitleLength = 120
 
     private static let weightRegex = try! NSRegularExpression(pattern: #"(\d{1,3})\s?%"#)
     private static let bulletRegex = try! NSRegularExpression(pattern: #"^\s*(?:[-–—•*◦·]|\d{1,2}[.)]|[a-z][.)])\s+"#)
@@ -93,6 +119,8 @@ enum DeadlineListParser {
     /// "deadline" from the edges, then collapses whitespace.
     static func cleanTitle(_ text: String) -> String {
         var s = text.replacingOccurrences(of: "\t", with: " ")
+        // "(80%)" or "[15%]" leave empty brackets once the weight is lifted out.
+        s = s.replacingOccurrences(of: #"\(\s*\)|\[\s*\]"#, with: " ", options: .regularExpression)
         s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         let edge = CharacterSet(charactersIn: "-–—|:;,•*·()[]").union(.whitespaces)
         var changed = true

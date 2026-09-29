@@ -8,6 +8,8 @@ struct ProjectTemplate: Identifiable, Hashable {
         let title: String
         let position: Double
         let tasks: [String]
+        /// Graded weighting for summative stages, e.g. "15%"; nil for formative ones.
+        var weight: String? = nil
     }
 
     let id: String
@@ -27,7 +29,7 @@ struct ProjectTemplate: Identifiable, Hashable {
         return stages.map { stage in
             let date = startDay.addingTimeInterval(span * min(max(stage.position, 0), 1))
             return ProjectStage(title: stage.title,
-                                weight: nil,
+                                weight: stage.weight,
                                 deadline: f.string(from: cal.startOfDay(for: date)),
                                 tasks: stage.tasks.map { ProjectTask(title: $0) })
         }
@@ -69,6 +71,56 @@ struct ProjectTemplate: Identifiable, Hashable {
                     "Proofread, format, and check references",
                     "Prepare and rehearse the demonstration",
                     "Back up in two places, then submit"]),
+            ]),
+        ProjectTemplate(
+            id: "westminster-iit-fyp",
+            name: "Westminster / IIT Sri Lanka FYP",
+            summary: "IIT / University of Westminster final-year project: chapters, SRS, PPRS, POC, IPD, testing and the final report.",
+            stages: [
+                Stage(title: "Introduction Chapter", position: 0.00, tasks: [
+                    "Lock your topic and get supervisor sign-off",
+                    "Write the problem statement, aim and objectives",
+                    "Draft the scope, significance and expected contribution"]),
+                Stage(title: "Methodology Chapter", position: 0.05, tasks: [
+                    "Lock your research design and approach",
+                    "Define how you will evaluate success",
+                    "Draft and submit the chapter"]),
+                Stage(title: "Literature Review Chapter", position: 0.28, tasks: [
+                    "Reach 10–15 relevant, recent papers",
+                    "Build a literature review matrix",
+                    "Derive and write your research gap"]),
+                Stage(title: "SRS", position: 0.38, tasks: [
+                    "Define functional and non-functional requirements",
+                    "Justify the feature set with evidence",
+                    "Draft a high-level architecture diagram"]),
+                Stage(title: "PPRS — Document + Video", position: 0.51, tasks: [
+                    "Compile the PPRS: problem, gap, solution, plan",
+                    "Script and record the video presentation",
+                    "Proofread and submit"], weight: "15%"),
+                Stage(title: "Proof of Concept", position: 0.62, tasks: [
+                    "Build a minimal working piece of the pipeline",
+                    "Test the core idea on a small sample",
+                    "Write up the result, including weak spots"]),
+                Stage(title: "Design and Prototype", position: 0.74, tasks: [
+                    "Finalise the full architecture",
+                    "Implement a fuller version of the system",
+                    "Document the key design decisions"]),
+                Stage(title: "IPD — Document + Demo", position: 0.82, tasks: [
+                    "Prepare a working demo, not just slides",
+                    "Write the IPD report to match the demo",
+                    "Record the demonstration video"], weight: "15%"),
+                Stage(title: "Testing and Evaluation", position: 0.90, tasks: [
+                    "Run the full evaluation with proper metrics",
+                    "Compare against a baseline or ablation",
+                    "Write the limitations honestly"]),
+                Stage(title: "First Version — Final Thesis Draft", position: 0.95, tasks: [
+                    "Assemble all chapters into one draft",
+                    "Consistency and referencing pass",
+                    "Revise after the supervisor review"]),
+                Stage(title: "Final Submission", position: 1.0, tasks: [
+                    "Final formatting, referencing and proofreading",
+                    "Package the source code and test every link",
+                    "Back up in two places, then submit"], weight: "70%"),
             ]),
         ProjectTemplate(
             id: "masters-dissertation",

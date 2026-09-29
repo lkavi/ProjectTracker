@@ -79,6 +79,22 @@ enum ProjectStore {
         return project
     }
 
+    /// New project from stages the user pasted and reviewed (deadline list,
+    /// handbook text or an email), rather than from a template.
+    static func create(named name: String, stages: [ProjectStage]) -> Project {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let project = Project(
+            instructions: aiInstructions,
+            definition: ProjectDefinition(
+                name: trimmed.isEmpty ? "Untitled project" : trimmed,
+                topic: nil,
+                stages: stages
+            )
+        )
+        save(project)
+        return project
+    }
+
     // MARK: - Prompt for an AI assistant (goes to the clipboard)
 
     /// A complete, paste-ready prompt: the rules, a place for the user to

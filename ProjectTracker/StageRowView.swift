@@ -25,11 +25,11 @@ struct StageRowView: View {
             Button {
                 isExpanded.toggle()
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(number)")
                         .font(.subheadline.weight(.semibold).monospacedDigit())
                         .foregroundStyle(status == .queued ? AnyShapeStyle(.secondary) : AnyShapeStyle(status.color))
-                        .frame(width: 22, alignment: .trailing)
+                        .frame(minWidth: 16, alignment: .leading)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(stage.title)
                             .font(.headline)
@@ -69,7 +69,7 @@ struct StageRowView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .contextMenu {
             if let onEdit {
-                Button { onEdit() } label: { Label("Edit Stages…", systemImage: "list.bullet") }
+                Button { onEdit() } label: { Label("Edit Stage…", systemImage: "pencil") }
             }
         }
         .animation(.easeInOut(duration: 0.15), value: isExpanded)
@@ -79,12 +79,26 @@ struct StageRowView: View {
 
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let deadline = stage.deadlineDate {
-                let target = stage.targetDate(daysEarly: bufferDays) ?? deadline
-                Text("Deadline \(formatted(deadline))  ·  Your target \(formatted(target))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 34)
+            HStack(alignment: .firstTextBaseline) {
+                if let deadline = stage.deadlineDate {
+                    let target = stage.targetDate(daysEarly: bufferDays) ?? deadline
+                    Text("Deadline \(formatted(deadline))  ·  Your target \(formatted(target))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("No deadline set")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                if let onEdit {
+                    Button { onEdit() } label: {
+                        Label("Edit", systemImage: "pencil")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier("edit-stage-button")
+                }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -102,11 +116,9 @@ struct StageRowView: View {
                     .checkboxToggleStyle()
                 }
             }
-            .padding(.leading, 34)
             .padding(.top, 2)
 
             StageNotesView(stageKey: stage.id.uuidString)
-                .padding(.leading, 34)
         }
     }
 

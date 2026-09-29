@@ -93,7 +93,7 @@ struct StageNotesView: View {
     /// first so a remote copy never overwrites unsaved typing (last writer wins).
     private func reloadFromCloud() {
         saveNow()
-        let fresh = ArtifactsStore.load(stageKey: stageKey)
+        let fresh = ArtifactsStore.load(stageKey: stageKey, forceReload: true)
         if fresh != record {
             lastSaved = fresh
             record = fresh

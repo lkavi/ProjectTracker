@@ -22,6 +22,13 @@ struct StageRecord: Codable, Equatable {
 enum ArtifactsStore {
     private static var baseURL: URL { CloudContainer.baseURL }
 
+    /// In-memory cache of records keyed by stage id. A stage row reads its notes
+    /// when it scrolls into view, and the widget-snapshot rebuild reads the next
+    /// stage's notes on every progress change, so caching avoids repeating the
+    /// coordinated file reads during scrolling and rapid edits. Invalidated for
+    /// a stage whenever a synced copy is pulled in (`load(forceReload:)`).
+    private static var cache: [String: StageRecord] = [:]
+
     private static func stageDir(for stageKey: String) -> URL {
         baseURL.appendingPathComponent("files/\(stageKey)", isDirectory: true)
     }
@@ -30,7 +37,9 @@ enum ArtifactsStore {
         baseURL.appendingPathComponent("notes/\(stageKey).json")
     }
 
-    static func load(stageKey: String) -> StageRecord {
+    static func load(stageKey: String, forceReload: Bool = false) -> StageRecord {
+        if !forceReload, let cached = cache[stageKey] { return cached }
+
         var record: StageRecord
         if let data = CloudContainer.read(at: notesURL(for: stageKey)),
            let stored = try? JSONDecoder().decode(StageRecord.self, from: data) {
@@ -38,6 +47,7 @@ enum ArtifactsStore {
         } else {
             record = StageRecord(stageKey: stageKey)
         }
+        cache[stageKey] = record
         // Kick off downloads for attached PDFs (iOS doesn't auto-download).
         for file in record.files {
             CloudContainer.ensureDownloaded(fileURL(stageKey: stageKey, filename: file.filename))
@@ -46,6 +56,7 @@ enum ArtifactsStore {
     }
 
     static func save(_ record: StageRecord) {
+        cache[record.stageKey] = record
         do {
             let data = try JSONEncoder().encode(record)
             CloudContainer.write(data, to: notesURL(for: record.stageKey))
