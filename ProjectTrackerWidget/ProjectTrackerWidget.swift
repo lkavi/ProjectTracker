@@ -97,13 +97,32 @@ struct SnapshotView: View {
     private var smallBody: some View {
         VStack(alignment: .leading, spacing: 5) {
             projectLabel
-            Text(snapshot.stageTitle)
-                .font(.headline)
-                .lineLimit(3)
+            compactTitle
             Spacer(minLength: 0)
             dueCapsule
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The stage title in the narrow small and medium layouts. A long word
+    /// like "Requirements" doesn't fit across them in the headline font and
+    /// gets hyphenated, so the font steps down with the longest word.
+    private var compactTitle: some View {
+        Text(snapshot.stageTitle)
+            .font(compactTitleFont)
+            .lineLimit(4)
+            .minimumScaleFactor(0.85)
+    }
+
+    private var compactTitleFont: Font {
+        let longestWord = snapshot.stageTitle
+            .split(whereSeparator: { $0.isWhitespace || "/-–—".contains($0) })
+            .map(\.count).max() ?? 0
+        switch longestWord {
+        case ..<11: return .headline
+        case ..<14: return .subheadline.weight(.semibold)
+        default:    return .footnote.weight(.semibold)
+        }
     }
 
     // MARK: Medium: stage info on the left, task list on the right
@@ -112,9 +131,7 @@ struct SnapshotView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 projectLabel
-                Text(snapshot.stageTitle)
-                    .font(.headline)
-                    .lineLimit(3)
+                compactTitle
                 Spacer(minLength: 0)
                 dueCapsule
                 if let target = targetDate {
