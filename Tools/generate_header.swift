@@ -1,18 +1,42 @@
-// Renders the App Store product-page header (5244 × 2950) from two app
-// screenshots: the icon and headline on the left, phones on the right.
-// Key content stays inside the middle band so the wide 3840 × 1646 crop
-// keeps it.
+// Renders the App Store creative assets from two app screenshots: the icon
+// and headline on the left, phones on the right.
 //
-//   swift Tools/generate_header.swift <icon.png> <left-screen.png> <right-screen.png> <out.png>
+//   header  5244 × 2950  product-page header; key content stays in the middle
+//                        band so the wide 3840 × 1646 crop keeps it
+//   search  3840 × 2560  search results asset
+//
+//   swift Tools/generate_header.swift header|search <icon.png> <left-screen.png> <right-screen.png> <out.png>
 import AppKit
 
 let args = CommandLine.arguments
-guard args.count == 5 else {
-    print("usage: generate_header.swift <icon.png> <left-screen.png> <right-screen.png> <out.png>")
+guard args.count == 6, ["header", "search"].contains(args[1]) else {
+    print("usage: generate_header.swift header|search <icon.png> <left-screen.png> <right-screen.png> <out.png>")
     exit(1)
 }
 
-let W: CGFloat = 5244, H: CGFloat = 2950
+struct Layout {
+    var size: NSSize
+    var left: CGFloat, iconSize: CGFloat, iconY: CGFloat
+    var nameSize: CGFloat, nameTop: CGFloat
+    var headlineTop: CGFloat, headlineSize: CGFloat, headlineWidth: CGFloat
+    var bodySize: CGFloat, bodyWidth: CGFloat
+    var glow: NSRect
+    var phones: [(height: CGFloat, center: NSPoint)]
+}
+
+let layout: Layout = args[1] == "header"
+    ? Layout(size: NSSize(width: 5244, height: 2950),
+             left: 400, iconSize: 400, iconY: 1900, nameSize: 150, nameTop: 2190,
+             headlineTop: 1760, headlineSize: 215, headlineWidth: 2250, bodySize: 100, bodyWidth: 2000,
+             glow: NSRect(x: 2500, y: 200, width: 2700, height: 2550),
+             phones: [(2050, NSPoint(x: 3330, y: 1400)), (2200, NSPoint(x: 4400, y: 1500))])
+    : Layout(size: NSSize(width: 3840, height: 2560),
+             left: 300, iconSize: 320, iconY: 1820, nameSize: 120, nameTop: 2055,
+             headlineTop: 1640, headlineSize: 175, headlineWidth: 1800, bodySize: 84, bodyWidth: 1650,
+             glow: NSRect(x: 1800, y: 150, width: 2200, height: 2250),
+             phones: [(1650, NSPoint(x: 2440, y: 1200)), (1800, NSPoint(x: 3290, y: 1290))])
+
+let W = layout.size.width, H = layout.size.height
 
 func rgb(_ r: Int, _ g: Int, _ b: Int, _ a: CGFloat = 1) -> NSColor {
     NSColor(srgbRed: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: a)
@@ -36,14 +60,13 @@ NSGradient(starting: rgb(76, 111, 255), ending: rgb(36, 52, 170))!
 
 // A soft light behind the phones.
 NSGradient(colors: [NSColor(white: 1, alpha: 0.16), NSColor(white: 1, alpha: 0)])!
-    .draw(in: NSBezierPath(ovalIn: NSRect(x: 2500, y: 200, width: 2700, height: 2550)), relativeCenterPosition: .zero)
+    .draw(in: NSBezierPath(ovalIn: layout.glow), relativeCenterPosition: .zero)
 
 // MARK: Left: icon, name, headline
 
-let left: CGFloat = 400
-let icon = image(args[1])
-let iconSize: CGFloat = 400
-let iconRect = NSRect(x: left, y: 1900, width: iconSize, height: iconSize)
+let left = layout.left, iconSize = layout.iconSize
+let icon = image(args[2])
+let iconRect = NSRect(x: left, y: layout.iconY, width: iconSize, height: iconSize)
 NSGraphicsContext.saveGraphicsState()
 NSBezierPath(roundedRect: iconRect, xRadius: iconSize * 0.225, yRadius: iconSize * 0.225).addClip()
 icon.draw(in: iconRect)
@@ -68,15 +91,15 @@ func draw(_ text: String, at point: NSPoint, size: CGFloat, weight: NSFont.Weigh
     return bounds.height
 }
 
-draw("Project Tracker", at: NSPoint(x: left + iconSize + 70, y: 2190), size: 150, weight: .semibold,
-     color: NSColor(white: 1, alpha: 0.9))
-var y: CGFloat = 1760
-y -= draw("Paste your deadlines.\nGet the whole plan.", at: NSPoint(x: left, y: y), size: 215, weight: .bold,
-          color: .white, width: 2250, lineSpacing: 6)
-y -= 90
+draw("Project Tracker", at: NSPoint(x: left + iconSize * 1.18, y: layout.nameTop), size: layout.nameSize,
+     weight: .semibold, color: NSColor(white: 1, alpha: 0.9))
+var y = layout.headlineTop
+y -= draw("Paste your deadlines.\nGet the whole plan.", at: NSPoint(x: left, y: y), size: layout.headlineSize,
+          weight: .bold, color: .white, width: layout.headlineWidth, lineSpacing: 6)
+y -= layout.bodySize * 0.9
 draw("Apple Intelligence turns your course email into stages, dates and tasks, privately on your device.",
-     at: NSPoint(x: left, y: y), size: 100, weight: .regular,
-     color: NSColor(white: 1, alpha: 0.82), width: 2000, lineSpacing: 16)
+     at: NSPoint(x: left, y: y), size: layout.bodySize, weight: .regular,
+     color: NSColor(white: 1, alpha: 0.82), width: layout.bodyWidth, lineSpacing: layout.bodySize * 0.16)
 
 // MARK: Right: two phones
 
@@ -92,8 +115,8 @@ func phone(_ path: String, height: CGFloat, center: NSPoint) {
     NSGraphicsContext.saveGraphicsState()
     let shadow = NSShadow()
     shadow.shadowColor = NSColor(white: 0, alpha: 0.35)
-    shadow.shadowBlurRadius = 120
-    shadow.shadowOffset = NSSize(width: 0, height: -50)
+    shadow.shadowBlurRadius = height * 0.058
+    shadow.shadowOffset = NSSize(width: 0, height: -height * 0.024)
     shadow.set()
     rgb(16, 18, 28).setFill()
     NSBezierPath(roundedRect: bodyRect, xRadius: radius + bezel, yRadius: radius + bezel).fill()
@@ -105,10 +128,11 @@ func phone(_ path: String, height: CGFloat, center: NSPoint) {
     NSGraphicsContext.restoreGraphicsState()
 }
 
-phone(args[2], height: 2050, center: NSPoint(x: 3330, y: 1400))
-phone(args[3], height: 2200, center: NSPoint(x: 4400, y: 1500))
+for (path, spec) in zip([args[3], args[4]], layout.phones) {
+    phone(path, height: spec.height, center: spec.center)
+}
 
 NSGraphicsContext.restoreGraphicsState()
 guard let png = rep.representation(using: .png, properties: [:]) else { exit(1) }
-try! png.write(to: URL(fileURLWithPath: args[4]))
-print("wrote \(args[4]) (\(Int(W))×\(Int(H)))")
+try! png.write(to: URL(fileURLWithPath: args[5]))
+print("wrote \(args[5]) (\(Int(W))×\(Int(H)))")
