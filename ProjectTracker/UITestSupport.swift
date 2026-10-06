@@ -10,6 +10,11 @@ enum UITestSupport {
     static let isActive = ProcessInfo.processInfo.arguments.contains("--ui-testing")
     private static let shouldReset = ProcessInfo.processInfo.arguments.contains("--ui-testing-reset")
 
+    /// Apple Intelligence is off under UI tests so they don't depend on the
+    /// device's model; `--ui-testing-ai` keeps it on for the on-device check.
+    static let blocksAppleIntelligence = isActive
+        && !ProcessInfo.processInfo.arguments.contains("--ui-testing-ai")
+
     /// Replaces the iCloud / Documents data folder while testing.
     static var dataRoot: URL {
         FileManager.default.temporaryDirectory

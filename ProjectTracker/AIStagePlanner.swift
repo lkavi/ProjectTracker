@@ -37,7 +37,7 @@ enum AIStagePlanner {
     /// True when Apple Intelligence is on and its model is ready on this
     /// device. Always false under UI tests, which need deterministic results.
     static var isAvailable: Bool {
-        guard !UITestSupport.isActive else { return false }
+        guard !UITestSupport.blocksAppleIntelligence else { return false }
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, *) {
             return SystemLanguageModel.default.isAvailable
@@ -49,7 +49,7 @@ enum AIStagePlanner {
     /// A short hint when the device could run the model but it's switched off
     /// or still downloading; nil when there's nothing the user can do.
     static var unavailableHint: String? {
-        guard !UITestSupport.isActive else { return nil }
+        guard !UITestSupport.blocksAppleIntelligence else { return nil }
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, *) {
             switch SystemLanguageModel.default.availability {
