@@ -1,4 +1,4 @@
-# App Store listing — Project Tracker
+# App Store listing: Project Tracker
 
 Ready-to-paste copy for App Store Connect, positioned for people searching for a **university / academic project tracker** or a **personal project tracker**. Character limits are Apple's; the lengths below were checked.
 
@@ -14,7 +14,7 @@ App Store search indexes the **name**, **subtitle** and **keywords** fields. The
 | **Subtitle** | `University & personal projects` | 30 / 30 |
 | **Keywords** | `thesis,dissertation,student,academic,assignment,deadline,milestone,planner,research,capstone,fyp` | 96 / 100 |
 
-Between them these cover the searches you asked for — *university project tracker*, *academic project tracker*, *personal project tracker* — plus the long-tail terms students actually type (*thesis planner*, *dissertation deadline*, *capstone*, *fyp*, *assignment tracker*).
+Between them these cover the searches you asked for (*university project tracker*, *academic project tracker*, *personal project tracker*) plus the long-tail terms students actually type (*thesis planner*, *dissertation deadline*, *capstone*, *fyp*, *assignment tracker*).
 
 **Name uniqueness.** App Store Connect rejects a name already used by another app, and a bare "Project Tracker" is almost certainly taken. The recommended name above keeps "Project Tracker" as the leading words (so the icon label and store name match) and adds the academic hook. Fallbacks, all under 30 characters:
 

@@ -93,7 +93,7 @@ struct ProjectTemplate: Identifiable, Hashable {
                     "Define functional and non-functional requirements",
                     "Justify the feature set with evidence",
                     "Draft a high-level architecture diagram"]),
-                Stage(title: "PPRS — Document + Video", position: 0.51, tasks: [
+                Stage(title: "PPRS: Document and Video", position: 0.51, tasks: [
                     "Compile the PPRS: problem, gap, solution, plan",
                     "Script and record the video presentation",
                     "Proofread and submit"], weight: "15%"),
@@ -105,7 +105,7 @@ struct ProjectTemplate: Identifiable, Hashable {
                     "Finalise the full architecture",
                     "Implement a fuller version of the system",
                     "Document the key design decisions"]),
-                Stage(title: "IPD — Document + Demo", position: 0.82, tasks: [
+                Stage(title: "IPD: Document and Demo", position: 0.82, tasks: [
                     "Prepare a working demo, not just slides",
                     "Write the IPD report to match the demo",
                     "Record the demonstration video"], weight: "15%"),
@@ -113,7 +113,7 @@ struct ProjectTemplate: Identifiable, Hashable {
                     "Run the full evaluation with proper metrics",
                     "Compare against a baseline or ablation",
                     "Write the limitations honestly"]),
-                Stage(title: "First Version — Final Thesis Draft", position: 0.95, tasks: [
+                Stage(title: "First Version of the Final Thesis Draft", position: 0.95, tasks: [
                     "Assemble all chapters into one draft",
                     "Consistency and referencing pass",
                     "Revise after the supervisor review"]),

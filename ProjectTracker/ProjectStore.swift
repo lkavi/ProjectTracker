@@ -189,7 +189,7 @@ enum ProjectStore {
         }
 
         guard !imported.definition.stages.isEmpty else {
-            throw ImportError.invalid("The project has no stages — \"definition.stages\" is empty.")
+            throw ImportError.invalid("The project has no stages: \"definition.stages\" is empty.")
         }
         if let empty = imported.definition.stages.first(where: { $0.tasks.isEmpty }) {
             throw ImportError.invalid("Stage \"\(empty.title)\" has no tasks. Every stage needs at least one task.")
@@ -352,15 +352,15 @@ enum ProjectStore {
     topic description (or null).
     - "definition.stages" is the ordered list of submission steps. Add, \
     remove, rename, and reorder stages freely so they match the project's \
-    actual milestones or submission structure — the count is NOT fixed.
+    actual milestones or submission structure. The count is NOT fixed.
     - Each stage has: "title"; "weight" like "15%" for graded/summative steps \
     or null for formative ones; "deadline" as "yyyy-MM-dd" or null if unknown; \
-    and "tasks" — between 1 and 8 short, specific, imperative checklist items \
+    and "tasks": between 1 and 8 short, specific, imperative checklist items \
     tailored to this specific project. Task count per stage is NOT fixed.
     - IDs are how the app keeps your progress across edits: KEEP the \
     existing "id" of every stage and task you retain (even when renaming it). \
     Give each NEW stage or task a freshly generated random UUID (version 4).
-    - Output the complete JSON file and nothing else — no commentary, no \
+    - Output the complete JSON file and nothing else: no commentary and no \
     markdown fences.
     """
 }

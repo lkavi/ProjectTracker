@@ -1,4 +1,4 @@
-# Publishing guide — App Store and Mac App Store
+# Publishing guide: App Store and Mac App Store
 
 A step-by-step path from this repository to a live listing. Everything marked ✅ is already done in the code; everything marked ☐ is a click or a decision in Xcode, App Store Connect or the Developer portal.
 
