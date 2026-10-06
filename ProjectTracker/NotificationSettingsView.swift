@@ -106,7 +106,7 @@ struct NotificationSettingsView: View {
         HStack(spacing: 14) {
             targetCardText
             Spacer()
-            bufferPicker.frame(width: 170)
+            bufferPicker.labelsHidden().fixedSize()
         }
         .padding(14)
         .background(Color.appControlBackground)

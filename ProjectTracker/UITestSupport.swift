@@ -40,6 +40,27 @@ enum UITestSupport {
         isActive && ProcessInfo.processInfo.arguments.contains("--open-settings")
     }
 
+    /// `--open-paste=<file>` opens the new-project paste sheet filled with that
+    /// file's text. Used for store screenshots; ignored without `--ui-testing`.
+    static var pasteTextAtLaunch: String? {
+        guard isActive else { return nil }
+        for arg in ProcessInfo.processInfo.arguments where arg.hasPrefix("--open-paste=") {
+            return try? String(contentsOfFile: String(arg.dropFirst("--open-paste=".count)), encoding: .utf8)
+        }
+        return nil
+    }
+
+    /// `--window-size=1240x1000` sets the Mac window's content size at launch,
+    /// for store screenshots; ignored without `--ui-testing`.
+    static var windowSizeAtLaunch: CGSize? {
+        guard isActive else { return nil }
+        for arg in ProcessInfo.processInfo.arguments where arg.hasPrefix("--window-size=") {
+            let parts = arg.dropFirst("--window-size=".count).split(separator: "x").compactMap { Double($0) }
+            if parts.count == 2 { return CGSize(width: parts[0], height: parts[1]) }
+        }
+        return nil
+    }
+
     /// Call once at launch, before anything reads preferences or files.
     static func resetIfNeeded() {
         guard isActive, shouldReset else { return }

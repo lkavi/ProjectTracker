@@ -149,7 +149,8 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showPasteNewProject) {
-                PasteDeadlinesView(createsProject: true, onImportProjectFile: importPastedProjectFile) { name, stages in
+                PasteDeadlinesView(createsProject: true, initialText: UITestSupport.pasteTextAtLaunch ?? "",
+                                   onImportProjectFile: importPastedProjectFile) { name, stages in
                     createProject(named: name, stages: stages)
                 }
             }
@@ -247,6 +248,16 @@ struct ContentView: View {
             checkSharedInbox()
             if UITestSupport.opensSettingsAtLaunch {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { showNotificationSettings = true }
+            }
+            #if os(macOS)
+            if let size = UITestSupport.windowSizeAtLaunch {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    NSApp.windows.first { $0.isVisible }?.setContentSize(size)
+                }
+            }
+            #endif
+            if UITestSupport.pasteTextAtLaunch != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { showPasteNewProject = true }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudContainerReady)) { _ in
